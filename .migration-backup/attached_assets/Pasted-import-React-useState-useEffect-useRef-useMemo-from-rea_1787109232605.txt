@@ -1,0 +1,1017 @@
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import {
+  Zap, Droplet, Building2, Paintbrush, LayoutGrid, Grid3x3, MoreHorizontal,
+  MapPin, Bell, ArrowLeft, Check, Clock, Camera, ChevronRight,
+  Home as HomeIcon, Briefcase, Map as MapIcon, Plus, Star, ShieldCheck,
+  Navigation, Radio, AlertTriangle, CalendarClock, Layers, Hammer, Wrench,
+  Ruler, Settings, Palette, SprayCan, Truck, Phone, PhoneCall, User,
+  LocateFixed
+} from "lucide-react";
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+`;
+
+const CATEGORIES = [
+  { key: "alci", label: "Alçı", icon: Layers },
+  { key: "boya", label: "Boya", icon: Paintbrush },
+  { key: "tadilat", label: "Tadilat", icon: Hammer },
+  { key: "tamirat", label: "Tamirat", icon: Wrench },
+  { key: "tesisat", label: "Tesisat", icon: Droplet },
+  { key: "elektrik", label: "Elektrik", icon: Zap },
+  { key: "seramik", label: "Seramik", icon: LayoutGrid },
+  { key: "fayans", label: "Fayans", icon: Grid3x3 },
+  { key: "laminat_parke", label: "Laminat Parke", icon: Ruler },
+  { key: "dis_cephe", label: "Dış Cephe Boyama", icon: Building2 },
+  { key: "montaj", label: "Montaj", icon: Settings },
+  { key: "dekorasyon", label: "Dekorasyon", icon: Palette },
+  { key: "ev_temizligi", label: "Ev Temizliği", icon: SprayCan },
+  { key: "nakliye", label: "Nakliye Hizmeti", icon: Truck },
+];
+
+const PRIORITIES = [
+  { key: "acil", label: "Acil", sub: "30 dk içinde", icon: AlertTriangle, tone: "danger" },
+  { key: "bugun", label: "Bugün", sub: "Gün içinde", icon: Clock, tone: "copper" },
+  { key: "planli", label: "Planlı", sub: "Tarih seçin", icon: CalendarClock, tone: "teal" },
+];
+
+const TIME_SLOTS = [
+  "Bugün · 10:00 – 13:00",
+  "Bugün · 13:00 – 16:00",
+  "Bugün · 16:00 – 19:00",
+  "Yarın · 09:00 – 12:00",
+];
+
+const MASTERS = [
+  { name: "Mehmet Yılmaz", service: "Elektrik", phone: "0532 111 22 33", rating: 4.9, jobs: 86, distance: "1.8 km", status: "Müsait", top: "28%", left: "62%" },
+  { name: "Ahmet Demir", service: "Tesisat", phone: "0533 222 33 44", rating: 4.8, jobs: 124, distance: "2.4 km", status: "Müsait", top: "54%", left: "30%" },
+  { name: "Hakan Şahin", service: "Tamirat", phone: "0534 333 44 55", rating: 4.7, jobs: 53, distance: "3.1 km", status: "Meşgul", top: "70%", left: "72%" },
+  { name: "Serkan Kaya", service: "Boya", phone: "0535 444 55 66", rating: 4.9, jobs: 41, distance: "3.6 km", status: "Müsait", top: "20%", left: "22%" },
+  { name: "Barış Öztürk", service: "Tadilat", phone: "0536 555 66 77", rating: 4.6, jobs: 67, distance: "2.1 km", status: "Müsait", top: "40%", left: "48%" },
+  { name: "Emre Aksoy", service: "Seramik", phone: "0537 666 77 88", rating: 4.8, jobs: 39, distance: "2.9 km", status: "Müsait", top: "62%", left: "18%" },
+];
+
+// Şematik konumlar (gerçek koordinat değil, görsel yerleşim amaçlı)
+const DISTRICTS = [
+  { name: "Muratpaşa", top: 52, left: 53, center: true },
+  { name: "Konyaaltı", top: 56, left: 47 },
+  { name: "Kepez", top: 44, left: 54 },
+  { name: "Döşemealtı", top: 42, left: 46 },
+  { name: "Aksu", top: 54, left: 60 },
+  { name: "Kemer", top: 62, left: 40 },
+  { name: "Serik", top: 58, left: 66 },
+  { name: "Manavgat", top: 64, left: 74 },
+  { name: "Alanya", top: 70, left: 84 },
+  { name: "Gazipaşa", top: 76, left: 93 },
+  { name: "Akseki", top: 40, left: 76 },
+  { name: "Gündoğmuş", top: 50, left: 82 },
+  { name: "İbradı", top: 46, left: 70 },
+  { name: "Korkuteli", top: 36, left: 34 },
+  { name: "Elmalı", top: 44, left: 22 },
+  { name: "Finike", top: 68, left: 32 },
+  { name: "Kumluca", top: 70, left: 24 },
+  { name: "Demre", top: 74, left: 16 },
+  { name: "Kaş", top: 78, left: 6 },
+];
+
+const seedJobs = [
+  { id: 1, title: "Elektrik Arızası", loc: "Fener Mahallesi · Muratpaşa", customerName: "Selin Aydın", customerPhone: "0542 123 45 67", status: "active", master: "Mehmet Yılmaz", masterPhone: "0532 111 22 33", departureTime: "09:14", eta: "12 dk" },
+  { id: 2, title: "Banyo Seramik Tamiratı", loc: "Çağlayan Mahallesi · Kepez", customerName: "Selin Aydın", customerPhone: "0542 123 45 67", status: "searching" },
+];
+
+function useFonts() {
+  useEffect(() => {
+    const tag = document.createElement("style");
+    tag.innerHTML = FONTS;
+    document.head.appendChild(tag);
+    return () => document.head.removeChild(tag);
+  }, []);
+}
+
+function TopBar({ title, onBack }) {
+  return (
+    <div style={s.topbar}>
+      {onBack ? (
+        <button onClick={onBack} style={s.iconBtn} aria-label="Geri">
+          <ArrowLeft size={19} color="var(--text)" />
+        </button>
+      ) : (
+        <div style={s.locWrap}>
+          <div style={s.locPin}>
+            <MapPin size={13} color="#FFF" />
+          </div>
+          <div>
+            <div style={s.locKicker}>Konum</div>
+            <div style={s.locLabel}>Muratpaşa, Fener Mah.</div>
+          </div>
+        </div>
+      )}
+      <div style={s.topTitle}>{title}</div>
+      {!onBack ? (
+        <button style={s.iconBtn} aria-label="Bildirimler">
+          <Bell size={18} color="var(--text)" />
+          <span style={s.dot} />
+        </button>
+      ) : <div style={{ width: 36 }} />}
+    </div>
+  );
+}
+
+function CategoryTile({ cat, selected, onClick }) {
+  const Icon = cat.icon;
+  return (
+    <button onClick={onClick} style={{ ...s.catTile, ...(selected ? s.catTileActive : {}) }}>
+      {selected && (
+        <span style={s.catCheck}>
+          <Check size={10} color="#FFF" strokeWidth={3} />
+        </span>
+      )}
+      <div style={{ ...s.catIconWrap, ...(selected ? s.catIconWrapActive : {}) }}>
+        <Icon size={19} color={selected ? "#FFF" : "var(--navy)"} strokeWidth={2.1} />
+      </div>
+      <span style={{ ...s.catLabel, color: selected ? "var(--navy)" : "var(--text)", fontWeight: selected ? 700 : 500 }}>{cat.label}</span>
+    </button>
+  );
+}
+
+function LiveLocationCard({ address, compact }) {
+  const [coords, setCoords] = useState({ lat: 36.8874, lng: 30.7061 });
+  useEffect(() => {
+    const t = setInterval(() => {
+      setCoords((c) => ({
+        lat: c.lat + (Math.random() - 0.5) * 0.0007,
+        lng: c.lng + (Math.random() - 0.5) * 0.0007,
+      }));
+    }, 3000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div style={{ ...s.liveLocCard, padding: compact ? "10px 12px" : "13px 14px" }}>
+      <div style={s.liveLocPulse}>
+        <span style={s.liveLocPulseRing} />
+        <span style={s.liveLocPulseCore} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={s.liveLocTitle}>
+          <LocateFixed size={12} color="var(--teal)" /> Canlı konum paylaşılıyor
+        </div>
+        <div style={s.liveLocAddr}>{address}</div>
+        <div style={s.liveLocCoords}>{coords.lat.toFixed(5)}° K, {coords.lng.toFixed(5)}° D</div>
+      </div>
+    </div>
+  );
+}
+
+function Home({ onStart, jobs, onOpenJob }) {
+  const active = jobs.find((j) => j.status === "active" || j.status === "searching");
+  return (
+    <div style={s.screen}>
+      <TopBar />
+      <div style={s.hero}>
+        <div style={s.heroGrid} />
+        <div style={s.heroEyebrow}>
+          <ShieldCheck size={13} color="var(--copper)" />
+          ANTALYA · KİMLİĞİ DOĞRULANMIŞ USTALAR
+        </div>
+        <h1 style={s.heroTitle}>Ustan, bir<br />talep uzağında.</h1>
+        <p style={s.heroSub}>Bölgene en yakın, puanı yüksek ustayı bul; işini adım adım canlı takip et.</p>
+        <button style={s.heroCta} onClick={() => onStart(null)}>
+          <Plus size={18} strokeWidth={2.5} />
+          Talep Oluştur
+        </button>
+      </div>
+
+      {active && (
+        <div style={s.sectionPad}>
+          <div style={s.sectionLabel}>Devam eden talebin</div>
+          <button style={s.activeCard} onClick={() => onOpenJob(active)}>
+            <div style={s.pulseWrap}>
+              <span style={s.pulseRing} />
+              <span style={s.pulseCore} />
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={s.activeTitle}>{active.title}</div>
+              <div style={{ ...s.activeSub, color: active.status === "active" ? "var(--teal)" : "var(--copper)" }}>
+                {active.status === "active"
+                  ? `${active.master} · ${active.departureTime}'de yola çıktı · ${active.eta}`
+                  : "Size en uygun usta aranıyor…"}
+              </div>
+            </div>
+            <div style={s.activeArrow}>
+              <ChevronRight size={17} color="var(--navy)" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Hangi konuda destek lazım?</div>
+        <div style={s.catGrid}>
+          {CATEGORIES.map((c) => (
+            <CategoryTile key={c.key} cat={c} selected={false} onClick={() => onStart(c.key)} />
+          ))}
+        </div>
+      </div>
+
+      <div style={s.sectionPad}>
+        <div style={s.howCard}>
+          <div style={s.sectionLabel}>Nasıl çalışır</div>
+          <div style={s.stepsCol}>
+            {[
+              ["01", "Bilgilerini gir", "Ad soyad, telefon, adres ve canlı konumun paylaşılır."],
+              ["02", "Ara butonuna bas", "Çevrendeki müsait ustalar anında listelenir."],
+              ["03", "Usta kabul etsin", "Kabul eden ustanın bilgisi ve yola çıkış saati görünür."],
+              ["04", "Canlı takip et", "Ustanın ve senin konumunu haritada izle."],
+            ].map(([n, t, d], i, arr) => (
+              <div key={n} style={s.stepRow}>
+                <div style={s.stepNumCol}>
+                  <span style={s.stepNum}>{n}</span>
+                  {i < arr.length - 1 && <span style={s.stepLine} />}
+                </div>
+                <div style={{ paddingBottom: i < arr.length - 1 ? 20 : 0 }}>
+                  <div style={s.stepTitle}>{t}</div>
+                  <div style={s.stepDesc}>{d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ height: 90 }} />
+    </div>
+  );
+}
+
+function RequestFlow({ initialCat, onClose, onSubmit }) {
+  const [step, setStep] = useState(0);
+  const [cat, setCat] = useState(initialCat);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [site, setSite] = useState("Lara Konakları");
+  const [blok, setBlok] = useState("B Blok");
+  const [daire, setDaire] = useState("18");
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [priority, setPriority] = useState("acil");
+  const [slot, setSlot] = useState(TIME_SLOTS[2]);
+  const [photoAdded, setPhotoAdded] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const catObj = CATEGORIES.find((c) => c.key === cat);
+  const address = `${site}, ${blok} · Daire ${daire}`;
+  const canStep0 = !!cat;
+  const canStep1 = fullName.trim().length > 1 && phone.replace(/\D/g, "").length >= 10;
+  const canStep2 = title.trim().length > 2;
+
+  const steps = ["Hizmet", "Bilgiler", "Detaylar", "Onay"];
+
+  if (sent) {
+    return (
+      <MatchingScreen
+        catObj={catObj}
+        customer={{ fullName, phone, address }}
+        onClose={onClose}
+        onDone={(matched, departureTime) =>
+          onSubmit({ title, cat, catObj, priority, slot, site, blok, daire, address, fullName, phone, matched, departureTime })
+        }
+      />
+    );
+  }
+
+  return (
+    <div style={s.screen}>
+      <TopBar title="Talep Oluştur" onBack={onClose} />
+      <div style={s.progressWrap}>
+        {steps.map((label, i) => (
+          <div key={label} style={{ flex: 1 }}>
+            <div style={{ ...s.progressBar, background: i <= step ? "var(--copper)" : "var(--border)" }} />
+            <div style={{ ...s.progressLabel, color: i === step ? "var(--copper)" : "var(--muted)" }}>
+              {String(i + 1).padStart(2, "0")} · {label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.flowBody}>
+        {step === 0 && (
+          <>
+            <div style={s.qTitle}>Hangi konuda destek lazım?</div>
+            <div style={s.catGrid}>
+              {CATEGORIES.map((c) => (
+                <CategoryTile key={c.key} cat={c} selected={cat === c.key} onClick={() => setCat(c.key)} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {step === 1 && (
+          <>
+            <div style={s.qTitle}>Ustanın seni bulabilmesi için</div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Ad Soyad</label>
+              <div style={s.inputWithIcon}>
+                <User size={16} color="var(--muted)" />
+                <input style={s.inputBare} placeholder="Adınız Soyadınız" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </div>
+            </div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Telefon Numarası</label>
+              <div style={s.inputWithIcon}>
+                <Phone size={16} color="var(--muted)" />
+                <input style={s.inputBare} placeholder="05xx xxx xx xx" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+            </div>
+
+            <div style={s.fieldLabel}>CANLI KONUM</div>
+            <div style={{ marginBottom: 16 }}>
+              <LiveLocationCard address={address} />
+            </div>
+
+            <div style={s.fieldLabel}>ADRES</div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Site</label>
+              <input style={s.input} value={site} onChange={(e) => setSite(e.target.value)} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ ...s.field, flex: 1 }}>
+                <label style={s.fieldSub}>Blok</label>
+                <input style={s.input} value={blok} onChange={(e) => setBlok(e.target.value)} />
+              </div>
+              <div style={{ ...s.field, flex: 1 }}>
+                <label style={s.fieldSub}>Daire</label>
+                <input style={s.input} value={daire} onChange={(e) => setDaire(e.target.value)} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div style={s.qTitle}>Ustanın hazırlıklı gelmesini sağlayın</div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Talep başlığı</label>
+              <input style={s.input} placeholder="Örn. Salon prizlerinde elektrik yok" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Açıklama <span style={{ color: "var(--muted)", fontWeight: 400 }}>(isteğe bağlı)</span></label>
+              <textarea style={s.textarea} rows={4} placeholder="Sorunu kısaca anlatın…" value={desc} onChange={(e) => setDesc(e.target.value)} />
+            </div>
+
+            <div style={s.fieldLabel}>ÖNCELİK</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              {PRIORITIES.map((p) => {
+                const Icon = p.icon;
+                const isActive = priority === p.key;
+                return (
+                  <button key={p.key} onClick={() => setPriority(p.key)} style={{ ...s.priorityBtn, ...(isActive ? s.priorityBtnActive(p.tone) : {}) }}>
+                    <Icon size={17} color={isActive ? `var(--${p.tone === "danger" ? "danger" : p.tone})` : "var(--muted)"} strokeWidth={2.2} />
+                    <div style={{ fontWeight: 700, fontSize: 13, marginTop: 6 }}>{p.label}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 1 }}>{p.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={s.fieldLabel}>TERCİH EDİLEN ZİYARET ZAMANI</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              {TIME_SLOTS.map((t) => (
+                <button key={t} onClick={() => setSlot(t)} style={{ ...s.slotBtn, ...(slot === t ? s.slotBtnActive : {}) }}>
+                  <Clock size={16} color={slot === t ? "var(--teal)" : "var(--muted)"} />
+                  <span style={{ flex: 1 }}>{t}</span>
+                  {slot === t && <Check size={16} color="var(--teal)" strokeWidth={3} />}
+                </button>
+              ))}
+            </div>
+
+            <div style={s.fieldLabel}>SORUNU GÖSTERİN <span style={{ color: "var(--muted)", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(isteğe bağlı, eşleşmeyi hızlandırır)</span></div>
+            <button style={{ ...s.photoBtn, ...(photoAdded ? s.photoBtnActive : {}) }} onClick={() => setPhotoAdded(true)}>
+              {photoAdded ? <Check size={17} color="var(--teal)" strokeWidth={3} /> : <Camera size={17} color="var(--muted)" />}
+              <span style={{ color: photoAdded ? "var(--teal)" : "var(--muted)", fontWeight: photoAdded ? 700 : 500 }}>
+                {photoAdded ? "1 fotoğraf eklendi" : "Fotoğraf / video ekle"}
+              </span>
+            </button>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <div style={s.qTitle}>Talebini gözden geçir</div>
+            <div style={s.reviewCard}>
+              <div style={s.reviewCardHead}>
+                <span>İŞ EMRİ ÖZETİ</span>
+                <span>#{Math.floor(Math.random() * 9000 + 1000)}</span>
+              </div>
+              <ReviewRow label="Ad Soyad" value={fullName || "—"} />
+              <ReviewRow label="Telefon" value={phone || "—"} />
+              <ReviewRow label="Hizmet" value={catObj?.label || "—"} />
+              <ReviewRow label="Konum" value={address} />
+              <ReviewRow label="Başlık" value={title || "—"} />
+              <ReviewRow label="Öncelik" value={PRIORITIES.find((p) => p.key === priority)?.label} />
+              <ReviewRow label="Zaman" value={slot} last />
+            </div>
+            <div style={s.trustRow}>
+              <ShieldCheck size={16} color="var(--teal)" />
+              Kimliği doğrulanmış ustalar arasından eşleştirme yapılır.
+            </div>
+          </>
+        )}
+      </div>
+
+      <div style={s.flowFooter}>
+        <button
+          style={{ ...s.submitBtn, opacity: (step === 0 && !canStep0) || (step === 1 && !canStep1) || (step === 2 && !canStep2) ? 0.4 : 1 }}
+          disabled={(step === 0 && !canStep0) || (step === 1 && !canStep1) || (step === 2 && !canStep2)}
+          onClick={() => (step < 3 ? setStep(step + 1) : setSent(true))}
+        >
+          {step < 3 ? (
+            <>Devam et <ChevronRight size={17} /></>
+          ) : (
+            <>Ustaları Ara <PhoneCall size={16} /></>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReviewRow({ label, value, last }) {
+  return (
+    <div style={{ ...s.reviewRow, borderBottom: last ? "none" : "1px dashed var(--border)" }}>
+      <span style={s.reviewLabel}>{label}</span>
+      <span style={s.reviewValue}>{value}</span>
+    </div>
+  );
+}
+
+function MatchingScreen({ catObj, customer, onClose, onDone }) {
+  const pool = useMemo(() => {
+    let list = MASTERS.filter((m) => catObj && m.service.toLowerCase() === catObj.label.toLowerCase());
+    if (list.length === 0) list = MASTERS.slice(0, 4);
+    return [...list].sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
+  }, [catObj]);
+
+  const [phase, setPhase] = useState("calling");
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [matched, setMatched] = useState(null);
+  const [departureTime, setDepartureTime] = useState("");
+
+  useEffect(() => {
+    let i = 0;
+    const reveal = setInterval(() => {
+      i += 1;
+      setVisibleCount(i);
+      if (i >= pool.length) clearInterval(reveal);
+    }, 420);
+    return () => clearInterval(reveal);
+  }, [pool]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const chosen = pool[0] || MASTERS[0];
+      const now = new Date();
+      setDepartureTime(now.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
+      setMatched(chosen);
+      setPhase("matched");
+    }, 3400);
+    return () => clearTimeout(t);
+  }, [pool]);
+
+  const eta = matched ? `${Math.max(4, Math.round(parseFloat(matched.distance) * 6))} dk` : "";
+
+  return (
+    <div style={{ ...s.screen, display: "flex", flexDirection: "column" }}>
+      <TopBar title="" onBack={onClose} />
+      <div style={{ padding: "0 20px 12px" }}>
+        <LiveLocationCard address={customer.address} compact />
+      </div>
+
+      {phase === "calling" ? (
+        <div style={s.callingWrap}>
+          <div style={s.radarWrap}>
+            <span style={s.radarRing1} />
+            <span style={s.radarRing2} />
+            <div style={s.radarCore}>
+              <PhoneCall size={20} color="#FFF" />
+            </div>
+          </div>
+          <div style={{ ...s.searchTitle, marginBottom: 2 }}>
+            Çevrenizdeki {catObj?.label.toLowerCase() || "hizmet"} ustaları aranıyor…
+          </div>
+          <div style={s.searchSub}>{customer.fullName ? `${customer.fullName} için oluşturuldu` : "Talebiniz iletiliyor"}</div>
+
+          <div style={s.callList}>
+            {pool.slice(0, visibleCount).map((m) => (
+              <div key={m.name} style={s.callRow}>
+                <div style={s.matchAvatar}>{m.name.split(" ").map((n) => n[0]).join("")}</div>
+                <div style={{ flex: 1, textAlign: "left" }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.name}</div>
+                  <div style={s.matchMeta}>
+                    <Star size={11} color="var(--copper)" fill="var(--copper)" /> {m.rating} · {m.distance}
+                  </div>
+                </div>
+                <span style={s.callingTag}>
+                  <span style={s.callingDot} /> Çağrılıyor
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={s.searchWrap}>
+          <div style={s.matchBadge}>
+            <Check size={26} color="#FFF" strokeWidth={3} />
+          </div>
+          <div style={s.searchTitle}>{matched.name} talebi kabul etti!</div>
+          <div style={s.searchSub}>{departureTime}'de yola çıktı</div>
+
+          <div style={s.matchCard}>
+            <div style={s.matchAvatar}>{matched.name.split(" ").map((n) => n[0]).join("")}</div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={{ fontWeight: 700, fontSize: 14.5 }}>{matched.name}</div>
+              <div style={s.matchMeta}>
+                <Star size={12} color="var(--copper)" fill="var(--copper)" /> {matched.rating} · {matched.jobs} iş · {matched.distance}
+              </div>
+            </div>
+            <span style={s.verifiedTag}>
+              <ShieldCheck size={12} color="var(--teal)" /> Doğrulandı
+            </span>
+          </div>
+
+          <div style={s.departCard}>
+            <DepartRow label="Yola çıkış saati" value={departureTime} />
+            <DepartRow label="Tahmini varış" value={eta} />
+            <DepartRow label="Telefon" value={matched.phone} last />
+          </div>
+
+          <div style={{ display: "flex", gap: 10, width: "100%" }}>
+            <a href={`tel:${matched.phone.replace(/\s/g, "")}`} style={s.callBtn}>
+              <PhoneCall size={16} /> Ara
+            </a>
+            <button style={{ ...s.submitBtn, flex: 1 }} onClick={() => onDone(matched, departureTime)}>
+              İşi Takip Et
+              <ChevronRight size={17} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DepartRow({ label, value, last }) {
+  return (
+    <div style={{ ...s.reviewRow, borderBottom: last ? "none" : "1px dashed var(--border)" }}>
+      <span style={s.reviewLabel}>{label}</span>
+      <span style={s.reviewValue}>{value}</span>
+    </div>
+  );
+}
+
+function statusMeta(status) {
+  if (status === "active") return { label: "Yolda", color: "var(--teal)" };
+  if (status === "searching") return { label: "Usta aranıyor", color: "var(--copper)" };
+  return { label: "Tamamlandı", color: "var(--muted)" };
+}
+
+function Jobs({ jobs, onStart, onTrack }) {
+  const activeJobs = jobs.filter((j) => j.status !== "done");
+  const doneJobs = jobs.filter((j) => j.status === "done");
+  return (
+    <div style={s.screen}>
+      <TopBar title="İşlerim" />
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Aktif talepler · {activeJobs.length}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {activeJobs.map((j) => {
+            const meta = statusMeta(j.status);
+            return (
+              <div key={j.id} style={s.jobCard}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 10 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14.5 }}>{j.title}</div>
+                  <span style={{ ...s.badge, background: meta.color }}>{meta.label}</span>
+                </div>
+                <div style={s.jobLoc}>
+                  <MapPin size={12} color="var(--muted)" /> {j.loc}
+                </div>
+                {j.status === "active" && (
+                  <>
+                    <div style={s.jobFooter}>
+                      <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{j.master} · {j.departureTime}'de yola çıktı · {j.eta}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <a href={`tel:${(j.masterPhone || "").replace(/\s/g, "")}`} style={s.callBtnSmall}>
+                        <PhoneCall size={13} /> Ara
+                      </a>
+                      <button style={s.trackBtn} onClick={() => onTrack(j)}>Canlı Takip</button>
+                    </div>
+                  </>
+                )}
+                {j.status === "searching" && (
+                  <div style={s.jobFooter}>
+                    <span style={{ fontSize: 12.5, color: "var(--copper)", fontWeight: 600 }}>Size en uygun usta aranıyor…</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {activeJobs.length === 0 && (
+            <div style={s.emptyCard}>
+              <div style={s.emptyIconWrap}>
+                <Briefcase size={20} color="var(--muted)" />
+              </div>
+              <div style={s.emptyTitle}>Aktif talebiniz yok</div>
+              <div style={s.emptyDesc}>Bir sorun mu var? Birkaç adımda usta talebi oluşturun.</div>
+              {onStart && (
+                <button style={s.emptyCta} onClick={() => onStart(null)}>
+                  <Plus size={15} strokeWidth={2.5} /> Talep Oluştur
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {doneJobs.length > 0 && (
+        <div style={s.sectionPad}>
+          <div style={s.sectionLabel}>Arşiv</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {doneJobs.map((j) => (
+              <div key={j.id} style={{ ...s.jobCard, opacity: 0.7 }}>
+                <div style={{ fontWeight: 600 }}>{j.title}</div>
+                <div style={s.jobLoc}><MapPin size={12} color="var(--muted)" /> {j.loc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{ height: 90 }} />
+    </div>
+  );
+}
+
+function TrackingScreen({ job, onClose }) {
+  const initialEta = parseInt(job.eta, 10) || 12;
+  const [etaMin, setEtaMin] = useState(initialEta);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setEtaMin((m) => (m > 0 ? m - 1 : 0));
+      setProgress((p) => Math.min(1, p + 1 / initialEta));
+    }, 2200);
+    return () => clearInterval(t);
+  }, [initialEta]);
+
+  const start = { top: 22, left: 78 };
+  const end = { top: 66, left: 46 };
+  const masterTop = start.top + (end.top - start.top) * progress;
+  const masterLeft = start.left + (end.left - start.left) * progress;
+  const arrived = etaMin <= 0;
+
+  return (
+    <div style={s.screen}>
+      <TopBar title="Canlı Takip" onBack={onClose} />
+      <div style={s.mapArea}>
+        <div style={s.mapGrid} />
+        <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+          <line x1={`${start.left}%`} y1={`${start.top}%`} x2={`${end.left}%`} y2={`${end.top}%`} stroke="var(--navy)" strokeWidth="2" strokeDasharray="5 6" opacity="0.35" />
+        </svg>
+        <div style={{ ...s.pin, top: `${masterTop}%`, left: `${masterLeft}%`, background: "var(--teal)", transition: "top 2s linear, left 2s linear" }}>
+          <Wrench size={14} color="#FFF" />
+        </div>
+        <div style={{ ...s.pin, top: `${end.top}%`, left: `${end.left}%`, background: "var(--navy)" }}>
+          <HomeIcon size={14} color="#FFF" />
+        </div>
+        <div style={s.mapBadge}>
+          <Radio size={13} color="var(--teal)" /> {arrived ? "Usta kapınızda" : `${etaMin} dk sonra varır`}
+        </div>
+      </div>
+
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Usta bilgileri</div>
+        <div style={s.jobCard}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={s.matchAvatar}>{(job.master || "U").split(" ").map((n) => n[0]).join("")}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14.5 }}>{job.master}</div>
+              <div style={s.matchMeta}>{job.departureTime}'de yola çıktı</div>
+            </div>
+            <a href={`tel:${(job.masterPhone || "").replace(/\s/g, "")}`} style={s.callBtnSmall}>
+              <PhoneCall size={13} /> Ara
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Paylaşılan bilgileriniz</div>
+        <div style={s.reviewCard}>
+          <ReviewRow label="Ad Soyad" value={job.customerName || "—"} />
+          <ReviewRow label="Telefon" value={job.customerPhone || "—"} />
+          <ReviewRow label="Adres" value={job.loc} last />
+        </div>
+        <LiveLocationCard address={job.loc} />
+      </div>
+      <div style={{ height: 40 }} />
+    </div>
+  );
+}
+
+function MapTab() {
+  const [sel, setSel] = useState(0);
+  return (
+    <div style={s.screen}>
+      <TopBar title="Harita" />
+      <div style={s.mapArea}>
+        <div style={s.mapGrid} />
+        {MASTERS.map((m, i) => (
+          <button
+            key={m.name}
+            onClick={() => setSel(i)}
+            style={{ ...s.pin, top: m.top, left: m.left, background: m.status === "Müsait" ? "var(--teal)" : "var(--muted)", transform: `translate(-50%,-50%) scale(${sel === i ? 1.25 : 1})`, zIndex: sel === i ? 3 : 1 }}
+          >
+            <MapPin size={16} color="#FFF" fill={sel === i ? "#FFF" : "none"} />
+          </button>
+        ))}
+        <div style={s.mapBadge}>
+          <Radio size={13} color="var(--teal)" /> {MASTERS.filter((m) => m.status === "Müsait").length} usta müsait
+        </div>
+      </div>
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Yakındaki ustalar</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {MASTERS.map((m, i) => (
+            <button key={m.name} onClick={() => setSel(i)} style={{ ...s.masterCard, ...(sel === i ? s.masterCardActive : {}) }}>
+              <div style={s.matchAvatar}>{m.name.split(" ").map((n) => n[0]).join("")}</div>
+              <div style={{ flex: 1, textAlign: "left" }}>
+                <div style={{ fontWeight: 700, fontSize: 14.5 }}>{m.name}</div>
+                <div style={s.matchMeta}>
+                  {m.service} · <Star size={11} color="var(--copper)" fill="var(--copper)" /> {m.rating} · {m.jobs} iş
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{m.distance}</div>
+                <div style={{ ...s.statusPill, background: m.status === "Müsait" ? "var(--teal)" : "var(--border)", color: m.status === "Müsait" ? "#FFF" : "var(--muted)" }}>{m.status}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ height: 90 }} />
+    </div>
+  );
+}
+
+export default function UstaCepteApp() {
+  useFonts();
+  const [tab, setTab] = useState("home");
+  const [flowOpen, setFlowOpen] = useState(false);
+  const [flowCat, setFlowCat] = useState(null);
+  const [jobs, setJobs] = useState(seedJobs);
+  const [trackingJob, setTrackingJob] = useState(null);
+  const nextId = useRef(3);
+
+  const startFlow = (cat) => {
+    setFlowCat(cat);
+    setFlowOpen(true);
+  };
+
+  const handleSubmit = (data) => {
+    const id = nextId.current++;
+    setJobs((prev) => [
+      {
+        id,
+        title: data.title || data.catObj?.label || "Yeni Talep",
+        loc: data.address,
+        customerName: data.fullName,
+        customerPhone: data.phone,
+        status: "active",
+        master: data.matched?.name,
+        masterPhone: data.matched?.phone,
+        departureTime: data.departureTime,
+        eta: `${Math.max(4, Math.round(parseFloat(data.matched?.distance || 1) * 6))} dk`,
+      },
+      ...prev,
+    ]);
+    setFlowOpen(false);
+    setTab("jobs");
+  };
+
+  const openJob = (job) => {
+    if (job.status === "active") setTrackingJob(job);
+    else setTab("jobs");
+  };
+
+  return (
+    <div style={s.page}>
+      <div style={s.phone}>
+        {trackingJob ? (
+          <TrackingScreen job={trackingJob} onClose={() => setTrackingJob(null)} />
+        ) : flowOpen ? (
+          <RequestFlow initialCat={flowCat} onClose={() => setFlowOpen(false)} onSubmit={handleSubmit} />
+        ) : (
+          <>
+            {tab === "home" && <Home onStart={startFlow} jobs={jobs} onOpenJob={openJob} />}
+            {tab === "jobs" && <Jobs jobs={jobs} onStart={startFlow} onTrack={setTrackingJob} />}
+            {tab === "map" && <MapTab />}
+            <div style={s.bottomNav}>
+              <NavBtn icon={HomeIcon} label="Keşfet" active={tab === "home"} onClick={() => setTab("home")} />
+              <NavBtn icon={MapIcon} label="Harita" active={tab === "map"} onClick={() => setTab("map")} />
+              <button style={s.fab} onClick={() => startFlow(null)} aria-label="Talep Oluştur">
+                <Plus size={22} color="#FFF" strokeWidth={2.5} />
+              </button>
+              <NavBtn icon={Briefcase} label="İşlerim" active={tab === "jobs"} onClick={() => setTab("jobs")} />
+              <div style={{ width: 40 }} />
+            </div>
+          </>
+        )}
+      </div>
+      <style>{`
+        * { box-sizing: border-box; }
+        button { font-family: inherit; cursor: pointer; }
+        a { text-decoration: none; }
+        input, textarea { font-family: inherit; }
+        ::placeholder { color: var(--muted); }
+        input:focus, textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+        button:focus-visible, a:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+        }
+        @keyframes pulseRing { 0% { transform: scale(0.7); opacity: 0.6; } 100% { transform: scale(2.1); opacity: 0; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+      `}</style>
+    </div>
+  );
+}
+
+function NavBtn({ icon: Icon, label, active, onClick }) {
+  return (
+    <button onClick={onClick} style={s.navBtn}>
+      <Icon size={19} color={active ? "var(--navy)" : "var(--muted)"} strokeWidth={active ? 2.4 : 2} />
+      <span style={{ fontSize: 10.5, color: active ? "var(--navy)" : "var(--muted)", fontWeight: active ? 700 : 500 }}>{label}</span>
+      {active && <span style={s.navDot} />}
+    </button>
+  );
+}
+
+const vars = {
+  "--bg": "#F6F3EC",
+  "--surface": "#FFFFFF",
+  "--surface2": "#EFE9DC",
+  "--navy": "#1B2A3C",
+  "--copper": "#DC7A2E",
+  "--teal": "#0F7A63",
+  "--danger": "#C4453A",
+  "--text": "#1B2430",
+  "--muted": "#647082",
+  "--border": "rgba(27,36,48,0.13)",
+};
+
+const s = {
+  page: {
+    minHeight: "100vh",
+    background: "var(--bg)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    padding: "0",
+    fontFamily: "'Inter', sans-serif",
+    ...vars,
+  },
+  phone: {
+    width: "100%",
+    maxWidth: 430,
+    minHeight: "100vh",
+    background: "var(--bg)",
+    color: "var(--text)",
+    position: "relative",
+    overflow: "hidden",
+    borderLeft: "1px solid var(--border)",
+    borderRight: "1px solid var(--border)",
+  },
+  screen: { minHeight: "100vh", paddingBottom: 10 },
+  topbar: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "18px 18px 12px",
+  },
+  locWrap: { display: "flex", alignItems: "center", gap: 8 },
+  locPin: { width: 24, height: 24, borderRadius: 8, background: "var(--navy)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  locKicker: { fontSize: 9.5, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, lineHeight: 1 },
+  locLabel: { fontSize: 13, color: "var(--text)", fontWeight: 700, marginTop: 2 },
+  topTitle: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16.5 },
+  iconBtn: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", boxShadow: "0 1px 2px rgba(27,36,48,0.05)" },
+  dot: { position: "absolute", top: 8, right: 8, width: 7, height: 7, borderRadius: 99, background: "var(--copper)", border: "1.5px solid var(--surface)" },
+  hero: { padding: "10px 20px 22px", position: "relative", overflow: "hidden" },
+  heroGrid: {
+    position: "absolute", inset: 0, opacity: 0.5,
+    backgroundImage: "linear-gradient(rgba(27,42,60,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(27,42,60,0.06) 1px, transparent 1px)",
+    backgroundSize: "22px 22px",
+    maskImage: "linear-gradient(to bottom, black, transparent 85%)",
+    WebkitMaskImage: "linear-gradient(to bottom, black, transparent 85%)",
+  },
+  heroEyebrow: { position: "relative", display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, letterSpacing: 0.8, color: "var(--copper)", fontWeight: 700, marginBottom: 12 },
+  heroTitle: { position: "relative", fontFamily: "'Space Grotesk', sans-serif", fontSize: 31, lineHeight: 1.14, fontWeight: 700, margin: "0 0 10px", color: "var(--navy)" },
+  heroSub: { position: "relative", fontSize: 14, color: "var(--muted)", lineHeight: 1.55, margin: "0 0 20px", maxWidth: 320 },
+  heroCta: { position: "relative", display: "flex", alignItems: "center", gap: 8, background: "var(--copper)", color: "#FFF", border: "none", padding: "14px 22px", borderRadius: 14, fontWeight: 700, fontSize: 14.5, boxShadow: "0 6px 16px rgba(220,122,46,0.32)" },
+  sectionPad: { padding: "14px 20px" },
+  sectionLabel: { fontSize: 12, color: "var(--muted)", fontWeight: 700, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 },
+  catGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 9, marginBottom: 20 },
+  catTile: { position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "14px 4px 12px", boxShadow: "0 1px 2px rgba(27,36,48,0.04)" },
+  catTileActive: { borderColor: "var(--navy)", background: "var(--surface2)" },
+  catIconWrap: { width: 34, height: 34, borderRadius: 10, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center" },
+  catIconWrapActive: { background: "var(--navy)" },
+  catCheck: { position: "absolute", top: 6, right: 6, width: 15, height: 15, borderRadius: 99, background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center" },
+  catLabel: { fontSize: 10.5, textAlign: "center", lineHeight: 1.25 },
+  activeCard: { width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 14, textAlign: "left", boxShadow: "0 2px 8px rgba(27,36,48,0.06)" },
+  pulseWrap: { position: "relative", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  pulseRing: { position: "absolute", width: 36, height: 36, borderRadius: 99, border: "2px solid var(--teal)", animation: "pulseRing 1.8s ease-out infinite" },
+  pulseCore: { width: 13, height: 13, borderRadius: 99, background: "var(--teal)" },
+  activeTitle: { fontWeight: 700, fontSize: 14.5, color: "var(--navy)" },
+  activeSub: { fontSize: 12.5, fontWeight: 600, marginTop: 3 },
+  activeArrow: { width: 30, height: 30, borderRadius: 99, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  howCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "16px 16px 4px", boxShadow: "0 1px 2px rgba(27,36,48,0.04)" },
+  stepsCol: { display: "flex", flexDirection: "column" },
+  stepRow: { display: "flex", gap: 14, alignItems: "flex-start" },
+  stepNumCol: { display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 },
+  stepNum: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: "var(--navy)", fontSize: 12.5, background: "var(--surface2)", borderRadius: 8, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" },
+  stepLine: { width: 2, flex: 1, background: "var(--border)", marginTop: 4, minHeight: 16 },
+  stepTitle: { fontWeight: 700, fontSize: 13.5, color: "var(--text)" },
+  stepDesc: { fontSize: 12, color: "var(--muted)", marginTop: 2, lineHeight: 1.4 },
+  progressWrap: { display: "flex", gap: 8, padding: "0 20px 16px" },
+  progressBar: { height: 4, borderRadius: 99, marginBottom: 7 },
+  progressLabel: { fontSize: 10, fontWeight: 700, letterSpacing: 0.2 },
+  flowBody: { padding: "4px 20px 100px" },
+  qTitle: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 19, margin: "4px 0 16px", color: "var(--navy)" },
+  fieldLabel: { fontSize: 11, letterSpacing: 0.6, color: "var(--muted)", fontWeight: 700, margin: "4px 0 8px", textTransform: "uppercase" },
+  field: { marginBottom: 12 },
+  fieldSub: { fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 5, fontWeight: 600 },
+  input: { width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 13px", color: "var(--text)", fontSize: 14.5, boxShadow: "0 1px 2px rgba(27,36,48,0.03)" },
+  inputWithIcon: { display: "flex", alignItems: "center", gap: 9, width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 13px", boxShadow: "0 1px 2px rgba(27,36,48,0.03)" },
+  inputBare: { flex: 1, border: "none", outline: "none", background: "transparent", color: "var(--text)", fontSize: 14.5, padding: 0 },
+  textarea: { width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 13px", color: "var(--text)", fontSize: 14.5, resize: "none", boxShadow: "0 1px 2px rgba(27,36,48,0.03)" },
+  priorityBtn: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 6px", color: "var(--text)", textAlign: "center" },
+  priorityBtnActive: (tone) => ({
+    background: tone === "danger" ? "#FBEAE8" : tone === "copper" ? "#FBEEDF" : "#E7F3F0",
+    borderColor: `var(--${tone === "danger" ? "danger" : tone})`,
+    borderWidth: 1.5,
+  }),
+  slotBtn: { display: "flex", alignItems: "center", gap: 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px", color: "var(--text)", fontSize: 13.5, textAlign: "left", fontWeight: 500 },
+  slotBtnActive: { borderColor: "var(--teal)", background: "#E7F3F0", color: "var(--teal)", fontWeight: 700 },
+  photoBtn: { display: "flex", alignItems: "center", gap: 9, background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 12, padding: "13px", fontSize: 13, width: "100%" },
+  photoBtnActive: { borderStyle: "solid", borderColor: "var(--teal)", background: "#E7F3F0" },
+  reviewCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "4px 14px", marginBottom: 14, boxShadow: "0 1px 2px rgba(27,36,48,0.04)" },
+  reviewCardHead: { display: "flex", justifyContent: "space-between", padding: "12px 0 10px", fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: "var(--muted)", borderBottom: "1px solid var(--border)" },
+  reviewRow: { display: "flex", justifyContent: "space-between", padding: "11px 0", gap: 10 },
+  reviewLabel: { fontSize: 12.5, color: "var(--muted)", fontWeight: 600 },
+  reviewValue: { fontSize: 13, fontWeight: 700, textAlign: "right", color: "var(--navy)" },
+  trustRow: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", background: "var(--surface2)", borderRadius: 12, padding: "10px 12px" },
+  flowFooter: { position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 430, margin: "0 auto", padding: 16, background: "linear-gradient(to top, var(--bg) 65%, transparent)" },
+  submitBtn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--copper)", color: "#FFF", border: "none", padding: "15px", borderRadius: 14, fontWeight: 700, fontSize: 14.5, boxShadow: "0 6px 16px rgba(220,122,46,0.3)" },
+  callBtn: { display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "var(--navy)", color: "#FFF", border: "none", padding: "15px 18px", borderRadius: 14, fontWeight: 700, fontSize: 13.5 },
+  callBtnSmall: { display: "flex", alignItems: "center", gap: 5, background: "var(--navy)", color: "#FFF", border: "none", borderRadius: 10, padding: "8px 12px", fontWeight: 700, fontSize: 11.5 },
+  liveLocCard: { display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 1px 2px rgba(27,36,48,0.04)" },
+  liveLocPulse: { position: "relative", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  liveLocPulseRing: { position: "absolute", width: 26, height: 26, borderRadius: 99, border: "2px solid var(--teal)", animation: "pulseRing 1.8s ease-out infinite" },
+  liveLocPulseCore: { width: 9, height: 9, borderRadius: 99, background: "var(--teal)" },
+  liveLocTitle: { display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "var(--teal)" },
+  liveLocAddr: { fontSize: 12.5, fontWeight: 600, color: "var(--navy)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  liveLocCoords: { fontSize: 10.5, color: "var(--muted)", marginTop: 2 },
+  searchWrap: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "30px 24px 40px", gap: 6 },
+  callingWrap: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px 20px 30px", gap: 6 },
+  radarWrap: { position: "relative", width: 84, height: 84, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  radarRing1: { position: "absolute", inset: 0, border: "2px solid var(--teal)", borderRadius: 99, animation: "pulseRing 2s ease-out infinite" },
+  radarRing2: { position: "absolute", inset: 0, border: "2px solid var(--teal)", borderRadius: 99, animation: "pulseRing 2s ease-out infinite 1s" },
+  radarCore: { width: 46, height: 46, borderRadius: 99, background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center" },
+  searchTitle: { fontFamily: "'Space Grotesk', sans-serif", fontSize: 17.5, fontWeight: 700, maxWidth: 300, color: "var(--navy)" },
+  searchSub: { fontSize: 12.5, color: "var(--muted)", marginTop: 4, marginBottom: 6 },
+  callList: { display: "flex", flexDirection: "column", gap: 8, width: "100%", marginTop: 16 },
+  callRow: { display: "flex", alignItems: "center", gap: 10, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", textAlign: "left" },
+  callingTag: { display: "flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, color: "var(--copper)", flexShrink: 0 },
+  callingDot: { width: 6, height: 6, borderRadius: 99, background: "var(--copper)", animation: "blink 1s ease-in-out infinite" },
+  matchBadge: { width: 56, height: 56, borderRadius: 99, background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 },
+  matchCard: { display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, width: "100%", margin: "16px 0", boxShadow: "0 2px 8px rgba(27,36,48,0.05)" },
+  matchAvatar: { width: 42, height: 42, borderRadius: 99, background: "var(--navy)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12.5, color: "#FFF", flexShrink: 0 },
+  matchMeta: { fontSize: 11.5, color: "var(--muted)", display: "flex", alignItems: "center", gap: 3, marginTop: 3 },
+  verifiedTag: { display: "flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 700, color: "var(--teal)", background: "#E7F3F0", padding: "5px 8px", borderRadius: 99, flexShrink: 0 },
+  departCard: { width: "100%", background: "var(--surface2)", borderRadius: 14, padding: "2px 14px", marginBottom: 16 },
+  jobCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, boxShadow: "0 1px 2px rgba(27,36,48,0.04)" },
+  jobLoc: { display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--muted)", marginTop: 5 },
+  jobFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" },
+  trackBtn: { flex: 1, background: "var(--teal)", color: "#FFF", border: "none", borderRadius: 10, padding: "8px 13px", fontWeight: 700, fontSize: 11.5 },
+  badge: { fontSize: 10.5, fontWeight: 700, padding: "5px 10px", borderRadius: 99, color: "#FFF", flexShrink: 0 },
+  emptyCard: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 16, padding: "28px 20px" },
+  emptyIconWrap: { width: 42, height: 42, borderRadius: 12, background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  emptyTitle: { fontWeight: 700, fontSize: 14.5, color: "var(--navy)" },
+  emptyDesc: { fontSize: 12.5, color: "var(--muted)", marginTop: 5, maxWidth: 240, lineHeight: 1.5 },
+  emptyCta: { marginTop: 16, display: "flex", alignItems: "center", gap: 6, background: "var(--copper)", color: "#FFF", border: "none", padding: "10px 16px", borderRadius: 12, fontWeight: 700, fontSize: 12.5 },
+  mapArea: { position: "relative", margin: "0 20px 6px", height: 260, borderRadius: 18, overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)" },
+  mapGrid: { position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(27,42,60,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(27,42,60,0.07) 1px, transparent 1px)", backgroundSize: "18px 18px" },
+  pin: { position: "absolute", width: 30, height: 30, borderRadius: "50% 50% 50% 0", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #FFF", boxShadow: "0 2px 6px rgba(27,36,48,0.25)", transform: "translate(-50%,-50%) rotate(45deg)" },
+  mapBadge: { position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, background: "#FFF", border: "1px solid var(--border)", borderRadius: 99, padding: "7px 12px", fontSize: 11.5, fontWeight: 700, boxShadow: "0 2px 6px rgba(27,36,48,0.08)" },
+  masterCard: { width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, textAlign: "left", boxShadow: "0 1px 2px rgba(27,36,48,0.04)" },
+  masterCardActive: { borderColor: "var(--navy)", background: "var(--surface2)" },
+  statusPill: { fontSize: 10.5, fontWeight: 700, padding: "3px 8px", borderRadius: 99, marginTop: 4, display: "inline-block" },
+  bottomNav: { position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 430, margin: "0 auto", height: 76, background: "rgba(246,243,236,0.94)", backdropFilter: "blur(10px)", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 10px" },
+  navBtn: { position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", width: 56, padding: "6px 0" },
+  navDot: { position: "absolute", top: -8, width: 4, height: 4, borderRadius: 99, background: "var(--copper)" },
+  fab: { width: 54, height: 54, borderRadius: 17, background: "var(--navy)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", marginTop: -24, boxShadow: "0 8px 20px rgba(27,42,60,0.35)" },
+};

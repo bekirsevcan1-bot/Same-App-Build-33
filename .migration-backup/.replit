@@ -1,0 +1,32 @@
+modules = ["nodejs-20", "web"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[objectStorage]
+defaultBucketID = "replit-objstore-2ae0ca2d-8275-4120-b725-6406cef45542"
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_ANON_KEY = "sb_publishable_WXuD2ii-PoyuvvdIXkM-rg_mGWwaEGV"
+VITE_SUPABASE_URL = "https://vqccltoturhepqzyskyu.supabase.co/rest/v1/"

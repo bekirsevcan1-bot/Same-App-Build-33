@@ -1,0 +1,12 @@
+{
+  "framework": "vite",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/usta-cepte-web run build",
+  "outputDirectory": "artifacts/usta-cepte-web/dist/public",
+  "rewrites": [
+    {
+      "source": "/((?!assets/|favicon\\.svg$|icon-192\\.svg$|icon-512\\.svg$|manifest\\.webmanifest$|robots\\.txt$|sw\\.js$).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

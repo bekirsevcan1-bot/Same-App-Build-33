@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/"
+title = "Usta Cepte"
+description = "Usta Cepte is a Turkish home services marketplace mobile app. Users can find and hire verified craftsmen (elektrikçi, tesisatçı, boya, çilingir, klima, vb.) for household jobs. The app features a dark UI with orange accents, a 3-step service request wizard, craftsman profiles with ratings, a live job tracker, a map view, and direct chat with craftsmen. Inspired by UrbanClap / TaskRabbit for the Turkish market."
+version = "1.0.0"
+id = "artifacts/usta-cepte"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 20279
+
+[services.development]
+run = "pnpm --filter @workspace/usta-cepte run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/usta-cepte", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/usta-cepte", "run", "serve" ]
+
+[services.env]
+PORT = "20279"
+BASE_PATH = "/"

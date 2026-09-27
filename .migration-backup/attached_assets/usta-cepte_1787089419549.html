@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Usta Cepte — Antalya'ya Özel</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root{
+    --bg:#0E1417; --surface:#171F23; --surface2:#1E282D;
+    --copper:#E3A344; --teal:#3FC7A6; --text:#F3EFE6; --muted:#8AA0A6;
+    --border:rgba(255,255,255,0.09); --danger:#E2572B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#0B0F11;font-family:'Segoe UI',Inter,system-ui,sans-serif;color:var(--text);}
+  #page{min-height:100vh;background:radial-gradient(circle at 30% 0%, #17232A 0%, #0B0F11 60%);display:flex;justify-content:center;}
+  #phone{width:100%;max-width:460px;min-height:100vh;background:var(--bg);position:relative;border-left:1px solid var(--border);border-right:1px solid var(--border);}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13.5px;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  label.fl{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 5px;font-weight:600;}
+  ::placeholder{color:var(--muted);}
+  a{color:var(--teal);}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;}
+  .brand{display:flex;align-items:center;gap:8px;}
+  .brand-badge{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--copper),#c97f1f);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#10161A;}
+  .brand-name{font-weight:800;font-size:17px;letter-spacing:0.2px;}
+  .brand-tag{font-size:10px;color:var(--teal);font-weight:700;letter-spacing:0.4px;}
+  .iconbtn{background:var(--surface);border:1px solid var(--border);border-radius:11px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
+
+  .hero{padding:8px 20px 18px;}
+  .hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(63,199,166,0.12);border:1px solid rgba(63,199,166,0.35);color:var(--teal);font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px;margin-bottom:12px;}
+  .hero h1{font-size:26px;line-height:1.15;margin:0 0 8px;font-weight:800;}
+  .hero p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 16px;}
+  .cta{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--copper);color:#10161A;border:none;padding:13px 18px;border-radius:13px;font-weight:800;font-size:14px;width:100%;}
+  .cta.ghost{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+
+  .section{padding:10px 20px;}
+  .section-label{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;}
+  .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px;}
+  .cat-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:12px 3px;}
+  .cat-tile.active{background:var(--teal);border-color:var(--teal);color:#10161A;}
+  .cat-tile .ic{font-size:19px;}
+  .cat-tile .lb{font-size:10px;font-weight:600;text-align:center;line-height:1.2;}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;}
+  .row{display:flex;align-items:center;gap:10px;}
+  .between{display:flex;align-items:center;justify-content:space-between;}
+  .muted{color:var(--muted);}
+  .small{font-size:12px;}
+  .badge{font-size:10px;font-weight:800;padding:4px 9px;border-radius:99px;border:1px solid;flex-shrink:0;}
+
+  .bottomnav{position:fixed;bottom:0;left:0;right:0;max-width:460px;margin:0 auto;height:70px;background:rgba(20,27,31,0.94);backdrop-filter:blur(10px);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:0 6px;z-index:20;}
+  .navbtn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--muted);width:64px;padding:6px 0;font-size:10px;font-weight:600;}
+  .navbtn.active{color:var(--teal);}
+  .navbtn .ic{font-size:18px;}
+  .fab{width:52px;height:52px;border-radius:16px;background:var(--copper);border:none;display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 8px 20px rgba(227,163,68,0.35);font-size:22px;color:#10161A;}
+
+  .support-fab{position:fixed;right:16px;bottom:86px;max-width:460px;z-index:25;width:52px;height:52px;border-radius:50%;background:var(--teal);border:none;box-shadow:0 8px 18px rgba(63,199,166,0.4);font-size:22px;display:flex;align-items:center;justify-content:center;}
+  .overlay{position:fixed;inset:0;background:rgba(6,9,10,0.6);display:flex;align-items:flex-end;justify-content:center;z-index:40;}
+  .sheet{width:100%;max-width:460px;max-height:82vh;background:var(--bg);border-top-left-radius:20px;border-top-right-radius:20px;border:1px solid var(--border);overflow-y:auto;padding-bottom:20px;}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px;position:sticky;top:0;background:var(--bg);}
+
+  .progress{display:flex;gap:8px;padding:0 20px 14px;}
+  .progress .bar{height:4px;border-radius:99px;background:rgba(255,255,255,0.09);margin-bottom:5px;}
+  .progress .bar.on{background:var(--teal);}
+  .progress .lb{font-size:10.5px;color:var(--muted);font-weight:700;}
+  .progress .lb.on{color:var(--teal);}
+
+  .field{margin-bottom:2px;}
+  .priority-row{display:flex;gap:8px;margin:8px 0 14px;}
+  .priority-btn{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 6px;text-align:center;color:var(--text);}
+  .priority-btn.on{border-color:var(--copper);background:#3a2415;color:var(--copper);}
+  .slot-btn{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 12px;font-size:13px;margin-bottom:7px;color:var(--text);width:100%;text-align:left;}
+  .slot-btn.on{border-color:var(--teal);background:var(--surface2);color:var(--teal);font-weight:700;}
+
+  .submitbar{position:sticky;bottom:0;padding:14px 18px 4px;background:linear-gradient(to top, var(--bg) 65%, transparent);}
+
+  #leafletDiv{width:100%;height:280px;border-radius:16px;overflow:hidden;border:1px solid var(--border);}
+  .live-badge{position:absolute;top:10px;left:10px;z-index:410;background:rgba(14,20,23,0.88);border:1px solid var(--border);border-radius:99px;padding:6px 11px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;}
+  .pulse-dot{width:14px;height:14px;border-radius:50%;background:#2E7DFF;border:3px solid #ffffff;box-shadow:0 0 0 rgba(46,125,255,0.5);animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,125,255,0.55);}70%{box-shadow:0 0 0 14px rgba(46,125,255,0);}100%{box-shadow:0 0 0 0 rgba(46,125,255,0);}}
+
+  .tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:14px;}
+  .tab{flex:1;text-align:center;padding:9px 4px;border-radius:9px;font-size:12px;font-weight:700;color:var(--muted);background:none;border:none;}
+  .tab.on{background:var(--teal);color:#10161A;}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 9px;font-size:12px;margin:0 6px 6px 0;}
+  .chip input{width:auto;margin:0;}
+  .chipgrid{display:grid;grid-template-columns:1fr 1fr;gap:0;max-height:220px;overflow-y:auto;padding:8px 4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:6px;}
+
+  .contract-box{max-height:190px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:11.5px;line-height:1.6;color:var(--muted);margin:8px 0 10px;}
+  .contract-box b{color:var(--text);}
+  .fee-highlight{background:linear-gradient(90deg,#3a2415,#241a10);border:1px solid var(--copper);color:var(--copper);border-radius:12px;padding:12px 14px;font-weight:800;font-size:14px;text-align:center;margin:10px 0;}
+  .disclaimer{font-size:10.5px;color:var(--muted);background:rgba(226,87,43,0.08);border:1px solid rgba(226,87,43,0.3);border-radius:10px;padding:9px 11px;margin:10px 0;}
+  .agree-row{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--muted);margin:10px 0 14px;}
+  .agree-row input{width:auto;margin-top:2px;}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;max-width:400px;background:var(--surface2);border:1px solid var(--teal);color:var(--text);padding:12px 16px;border-radius:12px;font-size:13px;z-index:60;box-shadow:0 10px 24px rgba(0,0,0,0.4);}
+
+  .support-panel{position:fixed;right:14px;bottom:150px;max-width:340px;width:88vw;background:var(--surface);border:1px solid var(--border);border-radius:16px;z-index:50;box-shadow:0 16px 34px rgba(0,0,0,0.5);overflow:hidden;}
+  .support-head{background:var(--teal);color:#10161A;padding:12px 14px;font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+  .support-msgs{max-height:220px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+  .msg{max-width:85%;padding:8px 11px;border-radius:12px;font-size:12.5px;line-height:1.4;}
+  .msg.bot{background:var(--surface2);align-self:flex-start;}
+  .msg.me{background:var(--copper);color:#10161A;align-self:flex-end;font-weight:600;}
+  .support-input{display:flex;border-top:1px solid var(--border);}
+  .support-input input{border:none;border-radius:0;background:transparent;}
+  .support-input button{background:var(--teal);color:#10161A;border:none;padding:0 16px;font-weight:800;}
+
+  .jobcard{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px;margin-bottom:10px;}
+  .jobfoot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);}
+  .btn-sm{background:var(--teal);color:#10161A;border:none;border-radius:9px;padding:7px 12px;font-weight:800;font-size:11.5px;}
+  .btn-sm.copper{background:var(--copper);}
+  .steps-col{display:flex;flex-direction:column;gap:14px;}
+  .stepnum{font-weight:800;color:var(--copper);font-size:13px;border:1px solid var(--border);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div id="page"><div id="phone"><div id="app"></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ============ VERİ ============ */
+const DISTRICTS = [
+  {id:'muratpasa', name:'Muratpaşa', lat:36.8850, lon:30.7061, neighborhoods:['Fener','Lara','Güzeloba','Meltem','Bahçelievler','Şirinyalı','Balbey','Zerdalilik','Deniz Mah.']},
+  {id:'konyaalti', name:'Konyaaltı', lat:36.8630, lon:30.6297, neighborhoods:['Liman','Hurma','Arapsuyu','Sarısu','Uncalı','Altınkum','Gürsu','Pınarbaşı']},
+  {id:'kepez', name:'Kepez', lat:36.9350, lon:30.7150, neighborhoods:['Varsak','Santral','Habipler','Erenköy','Ünsal','Emek','Gündoğdu','Yükseliş','Çağlayan']},
+  {id:'dosemealti', name:'Döşemealtı', lat:37.0230, lon:30.5540, neighborhoods:['Yeniköy','Kızıllı','Çakırlar','Merkez']},
+  {id:'aksu', name:'Aksu', lat:36.9130, lon:30.8390, neighborhoods:['Kadriye','Sarısu','Çalkaya','Merkez']},
+  {id:'serik', name:'Serik', lat:36.9160, lon:31.1010, neighborhoods:['Belek','Boğazkent','Merkez','Gebiz']},
+  {id:'manavgat', name:'Manavgat', lat:36.7870, lon:31.4430, neighborhoods:['Side','Çolaklı','Kızılağaç','Merkez']},
+  {id:'alanya', name:'Alanya', lat:36.5440, lon:31.9950, neighborhoods:['Mahmutlar','Kestel','Oba','Cikcilli','Tosmur']},
+  {id:'gazipasa', name:'Gazipaşa', lat:36.2710, lon:32.3210, neighborhoods:['Merkez','Pazarcı']},
+  {id:'kemer', name:'Kemer', lat:36.6020, lon:30.5590, neighborhoods:['Beldibi','Göynük','Çamyuva','Merkez']},
+  {id:'kumluca', name:'Kumluca', lat:36.3700, lon:30.2870, neighborhoods:['Merkez','Mavikent']},
+  {id:'finike', name:'Finike', lat:36.2990, lon:30.1460, neighborhoods:['Merkez','Turunçova']},
+  {id:'demre', name:'Demre', lat:36.2470, lon:29.9860, neighborhoods:['Merkez']},
+  {id:'kas', name:'Kaş', lat:36.2010, lon:29.6390, neighborhoods:['Merkez','Kalkan']},
+  {id:'elmali', name:'Elmalı', lat:36.7390, lon:29.9160, neighborhoods:['Merkez']},
+  {id:'korkuteli', name:'Korkuteli', lat:37.0640, lon:30.1930, neighborhoods:['Merkez']},
+  {id:'akseki', name:'Akseki', lat:37.0480, lon:31.7860, neighborhoods:['Merkez']},
+  {id:'gundogmus', name:'Gündoğmuş', lat:36.7940, lon:32.0800, neighborhoods:['Merkez']},
+  {id:'ibradi', name:'İbradı', lat:37.1240, lon:31.6060, neighborhoods:['Merkez']},
+];
+
+const CATS = [
+  {key:'alci-boya', label:'Alçı Boya', ic:'🎨'},
+  {key:'alcipan', label:'Alçıpan', ic:'🧱'},
+  {key:'su-tamiri', label:'Su Tamiri', ic:'🚰'},
+  {key:'elektrik', label:'Elektrik', ic:'⚡'},
+  {key:'dekorasyon', label:'Dekorasyon', ic:'🛋️'},
+  {key:'sap-kalip', label:'Şap Kalıp', ic:'🧰'},
+  {key:'dis-cephe', label:'Dış Cephe Boyama', ic:'🏚️'},
+  {key:'tadilat', label:'Tadilat', ic:'🔨'},
+  {key:'seramik-fayans', label:'Seramik Fayans', ic:'🧩'},
+  {key:'ev-temizligi', label:'Ev Temizliği', ic:'🧹'},
+  {key:'nakliye', label:'Nakliye', ic:'🚚'},
+];
+
+const WORK_MODELS = ['Bireysel Usta','Ekip (2-5 kişi)','Firma / Taşeron','Bayi / Franchise'];
+const TIME_SLOTS = ['Bugün · 10:00–13:00','Bugün · 13:00–16:00','Bugün · 16:00–19:00','Yarın · 09:00–12:00'];
+
+let idc = 100;
+const MOCK_MASTERS = [
+  {id:idc++, name:'Mehmet Yılmaz', cat:'elektrik', lat:36.887, lon:30.702, ilce:'Muratpaşa', rating:4.9, jobs:86},
+  {id:idc++, name:'Ahmet Demir', cat:'su-tamiri', lat:36.860, lon:30.633, ilce:'Konyaaltı', rating:4.8, jobs:124},
+  {id:idc++, name:'Hakan Şahin', cat:'alci-boya', lat:36.930, lon:30.710, ilce:'Kepez', rating:4.7, jobs:53},
+  {id:idc++, name:'Serkan Kaya', cat:'dis-cephe', lat:36.882, lon:30.715, ilce:'Muratpaşa', rating:4.9, jobs:41},
+  {id:idc++, name:'Murat Aydın', cat:'tadilat', lat:36.870, lon:30.640, ilce:'Konyaaltı', rating:4.6, jobs:65},
+  {id:idc++, name:'Onur Çelik', cat:'nakliye', lat:36.940, lon:30.720, ilce:'Kepez', rating:4.8, jobs:210},
+  {id:idc++, name:'Fatih Arslan', cat:'seramik-fayans', lat:36.885, lon:30.695, ilce:'Muratpaşa', rating:4.9, jobs:97},
+  {id:idc++, name:'Barış Koç', cat:'ev-temizligi', lat:36.858, lon:30.628, ilce:'Konyaaltı', rating:4.7, jobs:150},
+  {id:idc++, name:'Emre Yıldız', cat:'alcipan', lat:36.888, lon:30.680, ilce:'Muratpaşa', rating:4.6, jobs:38},
+  {id:idc++, name:'Cem Polat', cat:'dekorasyon', lat:36.865, lon:30.615, ilce:'Konyaaltı', rating:4.9, jobs:72},
+];
+
+const CONTRACT_TEXT = `<b>USTA CEPTE YAZILIM KULLANIM SÖZLEŞMESİ VE KVKK AYDINLATMA METNİ (ÖRNEK / TASLAK METİNDİR)</b><br><br>
+1. <b>Taraflar:</b> İşbu sözleşme, "Usta Cepte" platformu ("Platform") ile platforma kayıt olan hizmet sağlayıcı ("Kullanıcı") arasında elektronik onay ile kurulur.<br><br>
+2. <b>Hizmet Bedeli:</b> Kullanıcı, Platform üzerinden sağlanan yazılım, eşleştirme ve bildirim altyapısını kullanabilmek için <b>aylık 3.000 TL (üç bin Türk Lirası) yazılım kullanım ücreti</b> öder. Ücret her ayın 1'inde tahsil edilir; gecikme halinde hesap askıya alınabilir.<br><br>
+3. <b>Sorumluluk Sınırlaması:</b> Platform yalnızca Kullanıcı ile müşteriyi buluşturan bir aracı yazılım hizmetidir. Yapılan işin kalitesi, süresi, işçilik hataları, maddi/manevi zararlar Platform'un sorumluluğunda değildir; tüm sorumluluk Kullanıcı'ya aittir.<br><br>
+4. <b>Ücretin İadesi:</b> Yazılım kullanım ücreti, iş yapılıp yapılmadığına bakılmaksızın tahsil edilir ve iade edilmez.<br><br>
+5. <b>Fesih:</b> Platform, herhangi bir gerekçe göstermeksizin Kullanıcı hesabını askıya alma veya sonlandırma hakkını saklı tutar. Kullanıcı, tahakkuk etmiş borçlarından fesih halinde de sorumludur.<br><br>
+6. <b>Fikri Mülkiyet:</b> Platform yazılımı, arayüzü ve markası "Usta Cepte"ye aittir; izinsiz kopyalanamaz, çoğaltılamaz.<br><br>
+7. <b>KVKK Aydınlatma Metni:</b> Ad-soyad, telefon, e-posta, adres ve konum verileriniz; hizmetin sunulması, eşleştirme yapılması ve yasal yükümlülüklerin yerine getirilmesi amacıyla 6698 sayılı KVKK kapsamında işlenmektedir. Verileriniz, hizmetin gereği olarak ilgili müşteri ve/veya site yönetimi ile paylaşılabilir. KVKK m.11 kapsamındaki haklarınızı destek@ustacepte.com adresinden kullanabilirsiniz.<br><br>
+8. <b>Uyuşmazlıkların Çözümü:</b> İşbu sözleşmeden doğacak uyuşmazlıklarda Antalya Mahkemeleri ve İcra Daireleri yetkilidir.<br><br>
+9. <b>Değişiklik Hakkı:</b> Platform, bu sözleşme şartlarını ve ücret tarifesini tek taraflı olarak güncelleme hakkını saklı tutar; güncel şartlar uygulamada yayımlandığı andan itibaren geçerlidir.`;
+
+const KVKK_MUSTERI = `<b>MÜŞTERİ KVKK AYDINLATMA METNİ</b><br><br>
+Ad-soyad, telefon, e-posta ve adres/konum bilgileriniz; talebinizin ilgili hizmet sağlayıcıya iletilmesi ve hizmetin sunulması amacıyla 6698 sayılı KVKK kapsamında işlenir ve yalnızca eşleştirilen usta/firma ile paylaşılır. Üyelik ücretsizdir. KVKK m.11 haklarınızı destek@ustacepte.com üzerinden kullanabilirsiniz.`;
+
+/* ============ STATE ============ */
+const STATE = {
+  view:'home', role:'musteri', registerTab:'musteri', talepOpen:false, addressPanelOpen:false, supportOpen:false,
+  talep:{step:0, cat:null, useLive:false, ilce:'', mahalle:'', sokak:'', daire:'', title:'', desc:'', priority:'acil', slot:TIME_SLOTS[0], photo:false},
+  liveLocation:null, liveAddress:null,
+  supportMsgs:[{from:'bot', text:'Merhaba! Usta Cepte Canlı Destek hattına hoş geldiniz. Antalya genelinde size nasıl yardımcı olabiliriz?'}],
+  jobs:[
+    {id:1,title:'Elektrik Arızası',cat:'elektrik',ilce:'Muratpaşa',mahalle:'Fener',addr:'Fener Mah. · Muratpaşa',status:'kabul',usta:'Mehmet Yılmaz',eta:'12 dk'},
+    {id:2,title:'Banyo Seramik Tamiratı',cat:'seramik-fayans',ilce:'Kepez',mahalle:'Çağlayan',addr:'Çağlayan Mah. · Kepez',status:'bekliyor'},
+  ],
+  toast:null,
+};
+let jobIdc = 10;
+let leafletMap=null, masterMarkers={}, customerMarker=null, moveTimer=null;
+
+/* ============ YARDIMCI ============ */
+function catInfo(key){ return CATS.find(c=>c.key===key) || {label:key, ic:'🔧'}; }
+function distr(idOrName){ return DISTRICTS.find(d=>d.id===idOrName || d.name===idOrName); }
+function showToast(msg){ STATE.toast = msg; render(); setTimeout(()=>{ STATE.toast=null; renderToastOnly(); }, 3200); }
+function renderToastOnly(){ const el=document.getElementById('toastHolder'); if(el) el.outerHTML = toastHtml(); }
+function toastHtml(){ return STATE.toast ? `<div class="toast" id="toastHolder">${STATE.toast}</div>` : `<span id="toastHolder"></span>`; }
+function haversine(lat1,lon1,lat2,lon2){ const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180; const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2; return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+
+/* ============ RENDER: HOME ============ */
+function viewHome(){
+  return `
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-badge">UC</div>
+      <div><div class="brand-name">USTA CEPTE</div><div class="brand-tag">ANTALYA'YA ÖZEL</div></div>
+    </div>
+    <button class="iconbtn" data-action="nav" data-view="isler">🔔</button>
+  </div>
+  <div class="hero">
+    <div class="hero-badge">📍 19 İlçe · Tüm Antalya</div>
+    <h1>Antalya'nın Ustası<br>Artık Cebinizde!</h1>
+    <p>Muratpaşa'dan Alanya'ya, Kaş'tan Korkuteli'ne — güvenilir, canlı konumlu usta bir tık uzağınızda. Talebini gir, bölgendeki ustalar anında bildirim alsın.</p>
+    <button class="cta" data-action="open-talep" data-cat="">📍 Canlı Konumumla Talep Oluştur</button>
+  </div>
+  <div class="section">
+    <div class="section-label">Hangi konuda destek lazım?</div>
+    <div class="cat-grid">
+      ${CATS.map(c=>`<button class="cat-tile" data-action="open-talep" data-cat="${c.key}"><span class="lb">${c.label}</span></button>`).join('')}
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-label">Hemen Kayıt Ol</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="cta ghost" data-action="nav" data-view="kayit" data-tab="musteri">👤 Müşteri Kaydı</button>
+      <button class="cta ghost" data-action="nav" data-view="kayit" data-tab="usta">🛠️ Usta Kaydı — Tek Kayıtla Tüm İşler</button>
+      <button class="cta ghost" data-action="nav" data-view="kayit" data-tab="site">🏢 Site Yönetimi Kaydı</button>
+      <button class="cta ghost" data-action="nav" data-view="kayit" data-tab="nakliye">🚚 Nakliyeci Kaydı</button>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-label">Nasıl çalışır</div>
+    <div class="steps-col">
+      <div class="row"><span class="stepnum">01</span><div><div style="font-weight:700;font-size:13.5px;">Sorunu anlat</div><div class="muted small">Kategori seç, canlı konumunu veya adresini gir.</div></div></div>
+      <div class="row"><span class="stepnum">02</span><div><div style="font-weight:700;font-size:13.5px;">Bölgeye bildirim gitsin</div><div class="muted small">Yakınındaki tüm uygun ustalara anında bildirim iletilir.</div></div></div>
+      <div class="row"><span class="stepnum">03</span><div><div style="font-weight:700;font-size:13.5px;">Kabul eden usta gelsin</div><div class="muted small">İşi kabul eden ustanın canlı konumunu takip et.</div></div></div>
+    </div>
+  </div>
+  <div style="height:100px;"></div>`;
+}
+
+/* ============ RENDER: HARİTA ============ */
+function viewHarita(){
+  return `
+  <div class="topbar">
+    <button class="iconbtn" data-action="nav" data-view="home">←</button>
+    <div style="font-weight:800;">Antalya Canlı Harita</div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="section" style="padding-top:2px;position:relative;">
+    <div id="leafletDiv"></div>
+    <div class="live-badge">🛰️ OpenStreetMap — Gerçek Harita Verisi</div>
+  </div>
+  <div class="section" style="padding-top:4px;">
+    <button class="cta" data-action="get-live">📍 Canlı Konumumu Göster</button>
+    <div class="muted small" style="margin-top:8px;">Konum, cihazınızın tarayıcı izniyle gerçek zamanlı alınır. Usta konumları bu demoda simüle edilmiştir.</div>
+  </div>
+  <div class="section">
+    <div class="section-label">Haritadaki Ustalar (canlı)</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${MOCK_MASTERS.slice(0,6).map(m=>`
+        <div class="card row">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:13px;">${m.name}</div>
+            <div class="muted small">${catInfo(m.cat).label} · ${m.ilce} · ⭐ ${m.rating} · ${m.jobs} iş</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>
+  <div style="height:100px;"></div>`;
+}
+
+function initLeaflet(){
+  const el = document.getElementById('leafletDiv');
+  if(!el || typeof L==='undefined') return;
+  if(leafletMap){ leafletMap.remove(); leafletMap=null; }
+  leafletMap = L.map('leafletDiv',{zoomControl:true}).setView([37.05,30.9],8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'&copy; OpenStreetMap katkıda bulunanlar', maxZoom:19
+  }).addTo(leafletMap);
+  DISTRICTS.forEach(d=>{
+    L.circleMarker([d.lat,d.lon],{radius:4,color:'#3FC7A6',fillColor:'#3FC7A6',fillOpacity:0.7,weight:1})
+      .addTo(leafletMap).bindTooltip(d.name);
+  });
+  masterMarkers = {};
+  MOCK_MASTERS.forEach(m=>{
+    const icon = L.divIcon({className:'', html:`<div style="background:#1E282D;border:2px solid #3FC7A6;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;">${catInfo(m.cat).ic}</div>`, iconSize:[30,30]});
+    const mk = L.marker([m.lat,m.lon],{icon}).addTo(leafletMap)
+      .bindPopup(`<b>${m.name}</b><br>${catInfo(m.cat).label}<br>⭐ ${m.rating} · ${m.jobs} iş · ${m.ilce}`);
+    masterMarkers[m.id]=mk;
+  });
+  if(STATE.liveLocation){ addCustomerMarker(STATE.liveLocation); leafletMap.setView([STATE.liveLocation.lat,STATE.liveLocation.lon],13); }
+  if(moveTimer) clearInterval(moveTimer);
+  moveTimer = setInterval(()=>{
+    if(STATE.view!=='harita' || !leafletMap) return;
+    MOCK_MASTERS.forEach(m=>{
+      m.lat += (Math.random()-0.5)*0.003;
+      m.lon += (Math.random()-0.5)*0.003;
+      if(masterMarkers[m.id]) masterMarkers[m.id].setLatLng([m.lat,m.lon]);
+    });
+  }, 3500);
+}
+
+function addCustomerMarker(loc){
+  if(!leafletMap) return;
+  if(customerMarker){ leafletMap.removeLayer(customerMarker); }
+  const icon = L.divIcon({className:'', html:`<div style="width:18px;height:18px;border-radius:50%;background:#2E7DFF;border:3px solid #fff;box-shadow:0 0 0 5px rgba(46,125,255,0.25);"></div>`, iconSize:[18,18]});
+  customerMarker = L.marker([loc.lat,loc.lon],{icon}).addTo(leafletMap)
+    .bindPopup('📍 Canlı Konumunuz')
+    .on('click', ()=>{ STATE.addressPanelOpen=true; render(); });
+}
+
+function requestLiveLocation(cb){
+  if(!navigator.geolocation){ showToast('Bu tarayıcı canlı konumu desteklemiyor.'); return; }
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const loc = {lat:pos.coords.latitude, lon:pos.coords.longitude, acc:pos.coords.accuracy};
+    STATE.liveLocation = loc;
+    STATE.liveAddress = null;
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), 4000);
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.lat}&lon=${loc.lon}&zoom=18&addressdetails=1`, {signal: ctrl.signal});
+      clearTimeout(t);
+      const data = await res.json();
+      const a = data.address || {};
+      STATE.liveAddress = {
+        mahalle: a.suburb || a.neighbourhood || a.quarter || '',
+        sokak: a.road || '',
+        ilce: a.town || a.county || a.city_district || a.state_district || '',
+      };
+    }catch(e){ STATE.liveAddress = null; }
+    if(cb) cb(loc); else { STATE.addressPanelOpen=true; render(); }
+  }, err=>{
+    showToast('Konum alınamadı: izin gerekiyor. (' + err.message + ')');
+  }, {enableHighAccuracy:true, timeout:8000});
+}
+
+/* ============ ADRES PANELİ ============ */
+function addressPanelHtml(){
+  if(!STATE.addressPanelOpen) return '';
+  const loc = STATE.liveLocation;
+  const a = STATE.liveAddress || {};
+  return `
+  <div class="overlay" data-action="close-address-bg">
+    <div class="sheet" onclick="event.stopPropagation()">
+      <div class="sheet-head">
+        <div style="font-weight:800;">Canlı Konum Adresi</div>
+        <button class="iconbtn" data-action="close-address">✕</button>
+      </div>
+      <div class="section">
+        ${loc ? `<div class="muted small" style="margin-bottom:10px;">Tespit edilen koordinat: ${loc.lat.toFixed(5)}, ${loc.lon.toFixed(5)} ${a.mahalle||a.sokak ? '' : '<br>⚠️ Otomatik adres tespit edilemedi, lütfen aşağıyı doldurun.'}</div>` : ''}
+        <label class="fl">İlçe</label>
+        <input id="ap-ilce" value="${a.ilce||''}" placeholder="Örn. Muratpaşa" />
+        <label class="fl">Mahalle</label>
+        <input id="ap-mahalle" value="${a.mahalle||''}" placeholder="Örn. Fener Mahallesi" />
+        <label class="fl">Sokak / Cadde</label>
+        <input id="ap-sokak" value="${a.sokak||''}" placeholder="Örn. Atatürk Caddesi" />
+        <label class="fl">Daire / Kapı No</label>
+        <input id="ap-daire" placeholder="Örn. Daire 12" />
+        <div class="submitbar" style="padding-left:0;padding-right:0;">
+          <button class="cta" data-action="address-to-talep">Bu Adrese Talep Oluştur →</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ RENDER: İŞLERİM ============ */
+function viewIsler(){
+  const mine = STATE.jobs;
+  const bekleyen = mine.filter(j=>j.status==='bekliyor');
+  const kabul = mine.filter(j=>j.status==='kabul');
+  const tamam = mine.filter(j=>j.status==='tamamlandi');
+  return `
+  <div class="topbar">
+    <div style="font-weight:800;font-size:16px;">İşlerim</div>
+    <button class="iconbtn" data-action="toggle-role">${STATE.role==='musteri'?'👤':'🛠️'}</button>
+  </div>
+  <div class="section" style="padding-top:0;">
+    <div class="muted small" style="margin-bottom:10px;">DEMO GÖRÜNÜM: <b style="color:var(--teal)">${STATE.role==='musteri'?'Müşteri':'Usta'}</b> (sağ üstteki simgeyle değiştir)</div>
+    ${STATE.role==='usta' ? `
+      <div class="section-label">Bana Gelen Talepler · ${bekleyen.length}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+        ${bekleyen.map(j=>`
+          <div class="jobcard">
+            <div class="between"><div style="font-weight:700;">${catInfo(j.cat).ic} ${j.title}</div><span class="badge" style="color:var(--copper);border-color:var(--copper);">Bekliyor</span></div>
+            <div class="muted small" style="margin-top:4px;">${j.addr}</div>
+            <div class="jobfoot"><span class="small muted">Kategori: ${catInfo(j.cat).label}</span><button class="btn-sm" data-action="accept-job" data-id="${j.id}">Kabul Et</button></div>
+          </div>`).join('') || `<div class="muted small">Şu an bölgende bekleyen talep yok.</div>`}
+      </div>
+      <div class="section-label">Kabul Ettiklerim · ${kabul.length}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${kabul.map(j=>`
+          <div class="jobcard">
+            <div class="between"><div style="font-weight:700;">${j.title}</div><span class="badge" style="color:var(--teal);border-color:var(--teal);">Yolda</span></div>
+            <div class="muted small" style="margin-top:4px;">${j.addr}</div>
+            <div class="jobfoot"><span class="small muted">Tahmini varış: ${j.eta||'—'}</span><button class="btn-sm copper" data-action="complete-job" data-id="${j.id}">İşi Tamamla</button></div>
+          </div>`).join('') || `<div class="muted small">Henüz kabul ettiğin iş yok.</div>`}
+      </div>
+    ` : `
+      <div class="section-label">Bekleyen Talepler · ${bekleyen.length}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+        ${bekleyen.map(j=>`
+          <div class="jobcard">
+            <div class="between"><div style="font-weight:700;">${catInfo(j.cat).ic} ${j.title}</div><span class="badge" style="color:var(--copper);border-color:var(--copper);">Usta aranıyor</span></div>
+            <div class="muted small" style="margin-top:4px;">${j.addr}</div>
+          </div>`).join('') || `<div class="muted small">Bekleyen talebiniz yok.</div>`}
+      </div>
+      <div class="section-label">Kabul Edilen İşler · ${kabul.length}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+        ${kabul.map(j=>`
+          <div class="jobcard">
+            <div class="between"><div style="font-weight:700;">${j.title}</div><span class="badge" style="color:var(--teal);border-color:var(--teal);">Yolda</span></div>
+            <div class="muted small" style="margin-top:4px;">${j.addr}</div>
+            <div class="jobfoot"><span class="small muted">${j.usta||''} · tahmini ${j.eta||''}</span><button class="btn-sm">Canlı Takip</button></div>
+          </div>`).join('') || `<div class="muted small">Kabul edilen işiniz yok.</div>`}
+      </div>
+      <div class="section-label">Yapılan / Tamamlanan İşler · ${tamam.length}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${tamam.map(j=>`
+          <div class="jobcard" style="opacity:0.7;">
+            <div style="font-weight:700;">${j.title}</div>
+            <div class="muted small" style="margin-top:4px;">${j.addr} — ${j.usta||''}</div>
+          </div>`).join('') || `<div class="muted small">Henüz tamamlanan iş yok.</div>`}
+      </div>
+    `}
+  </div>
+  <div style="height:100px;"></div>`;
+}
+
+/* ============ RENDER: KAYIT ============ */
+function ilceOptions(sel){ return DISTRICTS.map(d=>`<option value="${d.id}" ${sel===d.id?'selected':''}>${d.name}</option>`).join(''); }
+function mahalleOptionsFor(ilceId, sel){
+  const d = distr(ilceId);
+  if(!d) return `<option value="">Önce ilçe seçin</option>`;
+  return d.neighborhoods.map(n=>`<option value="${n}" ${sel===n?'selected':''}>${n}</option>`).join('');
+}
+
+function viewKayit(){
+  const t = STATE.registerTab;
+  return `
+  <div class="topbar">
+    <button class="iconbtn" data-action="nav" data-view="home">←</button>
+    <div style="font-weight:800;">Kayıt Ol</div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="section" style="padding-top:2px;">
+    <div class="tabs">
+      <button class="tab ${t==='musteri'?'on':''}" data-action="reg-tab" data-tab="musteri">Müşteri</button>
+      <button class="tab ${t==='usta'?'on':''}" data-action="reg-tab" data-tab="usta">Usta</button>
+      <button class="tab ${t==='site'?'on':''}" data-action="reg-tab" data-tab="site">Site Yön.</button>
+      <button class="tab ${t==='nakliye'?'on':''}" data-action="reg-tab" data-tab="nakliye">Nakliyeci</button>
+    </div>
+    ${t==='musteri' ? formMusteri() : t==='usta' ? formUsta() : t==='site' ? formSite() : formNakliye()}
+  </div>
+  <div style="height:100px;"></div>`;
+}
+
+function formMusteri(){
+  return `
+  <label class="fl">Ad Soyad</label><input id="m-ad" placeholder="Ad Soyad" />
+  <label class="fl">Telefon</label><input id="m-tel" placeholder="05xx xxx xx xx" />
+  <label class="fl">E-posta</label><input id="m-mail" placeholder="ornek@mail.com" />
+  <label class="fl">İlçe</label><select id="m-ilce" data-action="chg-ilce" data-target="m-mahalle">${ilceOptions('')}</select>
+  <label class="fl">Mahalle</label><select id="m-mahalle">${mahalleOptionsFor('muratpasa','')}</select>
+  <label class="fl">Sokak / Cadde</label><input id="m-sokak" placeholder="Örn. Atatürk Caddesi" />
+  <label class="fl">Daire No</label><input id="m-daire" placeholder="Örn. 12" />
+  <label class="fl">Şifre</label><input id="m-sifre" type="password" placeholder="••••••••" />
+  <div class="contract-box">${KVKK_MUSTERI}</div>
+  <div class="agree-row"><input type="checkbox" id="m-onay" data-action="toggle-agree" data-target="m-submit" /><span>KVKK Aydınlatma Metni'ni okudum, kabul ediyorum. Müşteri üyeliği ücretsizdir.</span></div>
+  <button class="cta" id="m-submit" disabled data-action="submit-reg" data-role="musteri">Müşteri Olarak Kayıt Ol</button>`;
+}
+
+function formUsta(){
+  return `
+  <label class="fl">Ad Soyad</label><input id="u-ad" placeholder="Ad Soyad" />
+  <label class="fl">Telefon</label><input id="u-tel" placeholder="05xx xxx xx xx" />
+  <label class="fl">E-posta</label><input id="u-mail" placeholder="ornek@mail.com" />
+  <label class="fl">Deneyim (yıl)</label><input id="u-deneyim" type="number" placeholder="Örn. 5" />
+  <label class="fl">Hizmet Kategorileri <span class="muted">(tek kayıtla birden fazla seçebilirsiniz)</span></label>
+  <div class="chipgrid">
+    ${CATS.map(c=>`<label class="chip"><input type="checkbox" name="u-cat" value="${c.key}" /> ${c.ic} ${c.label}</label>`).join('')}
+  </div>
+  <label class="fl">Çalışma Modeli <span class="muted">(birden fazla seçilebilir)</span></label>
+  <div class="chipgrid">
+    ${WORK_MODELS.map(w=>`<label class="chip"><input type="checkbox" name="u-model" value="${w}" /> ${w}</label>`).join('')}
+  </div>
+  <label class="fl">Hizmet Verilecek İlçeler <span class="muted">(birden fazla seçilebilir)</span></label>
+  <div class="chipgrid">
+    ${DISTRICTS.map(d=>`<label class="chip"><input type="checkbox" name="u-ilce" value="${d.id}" data-action="chg-usta-ilce" /> ${d.name}</label>`).join('')}
+  </div>
+  <label class="fl">Hizmet Verilecek Mahalleler <span class="muted">(önce ilçe seçin)</span></label>
+  <div class="chipgrid" id="u-mahalle-grid"><div class="muted small" style="padding:8px;">İlçe seçtiğinizde mahalleler burada listelenecek.</div></div>
+  <label class="fl">Şifre</label><input id="u-sifre" type="password" placeholder="••••••••" />
+  <div class="fee-highlight">Aylık Yazılım Kullanım Ücreti: 3.000 TL</div>
+  <div class="contract-box">${CONTRACT_TEXT}</div>
+  <div class="disclaimer">⚠️ Bu sözleşme metni örnek/taslak niteliğindedir; gerçek kullanım öncesi bir hukuk danışmanına onaylatmanız önerilir.</div>
+  <div class="agree-row"><input type="checkbox" id="u-onay" data-action="toggle-agree" data-target="u-submit" /><span>Yazılım Kullanım Sözleşmesi'ni ve KVKK Aydınlatma Metni'ni okudum, aylık 3.000 TL ücreti kabul ediyorum.</span></div>
+  <button class="cta" id="u-submit" disabled data-action="submit-reg" data-role="usta">Usta Olarak Kayıt Ol</button>`;
+}
+
+function formSite(){
+  return `
+  <label class="fl">Site Adı</label><input id="s-ad" placeholder="Örn. Lara Konakları" />
+  <label class="fl">Yetkili Ad Soyad</label><input id="s-yetkili" placeholder="Site Yöneticisi" />
+  <label class="fl">Telefon</label><input id="s-tel" placeholder="05xx xxx xx xx" />
+  <label class="fl">E-posta</label><input id="s-mail" placeholder="ornek@mail.com" />
+  <label class="fl">İlçe</label><select id="s-ilce" data-action="chg-ilce" data-target="s-mahalle">${ilceOptions('')}</select>
+  <label class="fl">Mahalle</label><select id="s-mahalle">${mahalleOptionsFor('muratpasa','')}</select>
+  <div style="display:flex;gap:10px;">
+    <div style="flex:1;"><label class="fl">Blok Sayısı</label><input id="s-blok" type="number" placeholder="Örn. 4" /></div>
+    <div style="flex:1;"><label class="fl">Daire Sayısı</label><input id="s-daire" type="number" placeholder="Örn. 96" /></div>
+  </div>
+  <label class="fl">Şifre</label><input id="s-sifre" type="password" placeholder="••••••••" />
+  <div class="fee-highlight">Aylık Yazılım Kullanım Ücreti: 3.000 TL</div>
+  <div class="contract-box">${CONTRACT_TEXT}</div>
+  <div class="disclaimer">⚠️ Bu sözleşme metni örnek/taslak niteliğindedir; gerçek kullanım öncesi bir hukuk danışmanına onaylatmanız önerilir.</div>
+  <div class="agree-row"><input type="checkbox" id="s-onay" data-action="toggle-agree" data-target="s-submit" /><span>Yazılım Kullanım Sözleşmesi'ni ve KVKK Aydınlatma Metni'ni okudum, aylık 3.000 TL ücreti kabul ediyorum.</span></div>
+  <button class="cta" id="s-submit" disabled data-action="submit-reg" data-role="site">Site Yönetimi Olarak Kayıt Ol</button>`;
+}
+
+function formNakliye(){
+  return `
+  <label class="fl">Firma / Ad Soyad</label><input id="n-ad" placeholder="Firma veya Ad Soyad" />
+  <label class="fl">Telefon</label><input id="n-tel" placeholder="05xx xxx xx xx" />
+  <label class="fl">E-posta</label><input id="n-mail" placeholder="ornek@mail.com" />
+  <label class="fl">Araç Tipi</label>
+  <select id="n-arac"><option>Kamyonet</option><option>Kamyon</option><option>Panelvan</option><option>Çekici</option></select>
+  <label class="fl">Taşıma Kapasitesi (ton)</label><input id="n-kapasite" type="number" placeholder="Örn. 3" />
+  <label class="fl">Hizmet Verilecek İlçeler <span class="muted">(birden fazla seçilebilir)</span></label>
+  <div class="chipgrid">
+    ${DISTRICTS.map(d=>`<label class="chip"><input type="checkbox" name="n-ilce" value="${d.id}" /> ${d.name}</label>`).join('')}
+  </div>
+  <label class="fl">Şifre</label><input id="n-sifre" type="password" placeholder="••••••••" />
+  <div class="fee-highlight">Aylık Yazılım Kullanım Ücreti: 3.000 TL</div>
+  <div class="contract-box">${CONTRACT_TEXT}</div>
+  <div class="disclaimer">⚠️ Bu sözleşme metni örnek/taslak niteliğindedir; gerçek kullanım öncesi bir hukuk danışmanına onaylatmanız önerilir.</div>
+  <div class="agree-row"><input type="checkbox" id="n-onay" data-action="toggle-agree" data-target="n-submit" /><span>Yazılım Kullanım Sözleşmesi'ni ve KVKK Aydınlatma Metni'ni okudum, aylık 3.000 TL ücreti kabul ediyorum.</span></div>
+  <button class="cta" id="n-submit" disabled data-action="submit-reg" data-role="nakliye">Nakliyeci Olarak Kayıt Ol</button>`;
+}
+
+/* ============ TALEP FLOW ============ */
+function talepFlowHtml(){
+  if(!STATE.talepOpen) return '';
+  const t = STATE.talep;
+  const steps = ['Hizmet','Detaylar','Onay'];
+  return `
+  <div class="overlay">
+    <div class="sheet" style="max-height:92vh;">
+      <div class="sheet-head">
+        <button class="iconbtn" data-action="talep-close">←</button>
+        <div style="font-weight:800;">Talep Oluştur</div>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="progress">
+        ${steps.map((lb,i)=>`<div style="flex:1;"><div class="bar ${i<=t.step?'on':''}"></div><div class="lb ${i===t.step?'on':''}">${lb}</div></div>`).join('')}
+      </div>
+      <div class="section" style="padding-top:0;">
+        ${t.step===0?talepStep0():t.step===1?talepStep1():talepStep2()}
+      </div>
+      <div class="submitbar">
+        <button class="cta" id="talep-next-btn" data-action="talep-next">${t.step<2?'Devam et →':'Talebi Gönder →'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function talepStep0(){
+  const t = STATE.talep;
+  return `
+  <div class="section-label">Hangi konuda destek lazım?</div>
+  <div class="cat-grid">
+    ${CATS.map(c=>`<button class="cat-tile ${t.cat===c.key?'active':''}" data-action="talep-cat" data-cat="${c.key}"><span class="ic">${c.ic}</span><span class="lb">${c.label}</span></button>`).join('')}
+  </div>
+  <div class="section-label" style="margin-top:14px;">Konum</div>
+  <button class="cta ghost" data-action="talep-use-live">📍 ${t.useLive && STATE.liveLocation ? 'Canlı konum kullanılıyor ✓' : 'Canlı Konumumu Kullan'}</button>
+  <div class="muted small" style="margin:10px 0;">veya manuel adres girin:</div>
+  <label class="fl">İlçe</label>
+  <select id="t-ilce" data-action="talep-chg-ilce">${ilceOptions(t.ilce)}</select>
+  <label class="fl">Mahalle</label>
+  <select id="t-mahalle">${mahalleOptionsFor(t.ilce||'muratpasa', t.mahalle)}</select>
+  <label class="fl">Sokak / Cadde</label>
+  <input id="t-sokak" value="${t.sokak}" placeholder="Örn. Atatürk Caddesi" />
+  <label class="fl">Daire No</label>
+  <input id="t-daire" value="${t.daire}" placeholder="Örn. 12" />`;
+}
+
+function talepStep1(){
+  const t = STATE.talep;
+  return `
+  <div class="section-label">Sorununuzu anlatın</div>
+  <label class="fl">Talep Başlığı</label>
+  <input id="t-title" value="${t.title}" placeholder="Örn. Salon prizlerinde elektrik yok" />
+  <label class="fl">Açıklama</label>
+  <textarea id="t-desc" rows="4" placeholder="Sorunu kısaca anlatın…">${t.desc}</textarea>
+  <div class="section-label" style="margin-top:14px;">Öncelik</div>
+  <div class="priority-row">
+    <button class="priority-btn ${t.priority==='acil'?'on':''}" data-action="talep-prio" data-p="acil"><b>Acil</b><br><span class="small">30 dk içinde</span></button>
+    <button class="priority-btn ${t.priority==='bugun'?'on':''}" data-action="talep-prio" data-p="bugun"><b>Bugün</b><br><span class="small">Gün içinde</span></button>
+    <button class="priority-btn ${t.priority==='planli'?'on':''}" data-action="talep-prio" data-p="planli"><b>Planlı</b><br><span class="small">Tarih seç</span></button>
+  </div>
+  <div class="section-label">Tercih Edilen Zaman</div>
+  ${TIME_SLOTS.map(sl=>`<button class="slot-btn ${t.slot===sl?'on':''}" data-action="talep-slot" data-slot="${sl}">🕒 ${sl}</button>`).join('')}
+  <div class="section-label" style="margin-top:10px;">Fotoğraf / Video <span class="muted">(isteğe bağlı)</span></div>
+  <button class="cta ghost" data-action="talep-photo">📷 ${t.photo?'1 dosya eklendi ✓':'Fotoğraf / video ekle'}</button>`;
+}
+
+function talepStep2(){
+  const t = STATE.talep;
+  const d = distr(t.ilce);
+  const locStr = t.useLive && STATE.liveLocation ? 'Canlı Konum (GPS)' : `${d?d.name:'—'}, ${t.mahalle||'—'} · ${t.sokak||''} ${t.daire?('· Daire '+t.daire):''}`;
+  return `
+  <div class="section-label">Talebini gözden geçir</div>
+  <div class="card">
+    <div class="between" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);"><span class="muted small">Hizmet</span><b class="small">${catInfo(t.cat).ic} ${catInfo(t.cat).label}</b></div>
+    <div class="between" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);"><span class="muted small">Konum</span><b class="small" style="text-align:right;">${locStr}</b></div>
+    <div class="between" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);"><span class="muted small">Başlık</span><b class="small">${t.title||'—'}</b></div>
+    <div class="between" style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.07);"><span class="muted small">Öncelik</span><b class="small">${t.priority==='acil'?'Acil':t.priority==='bugun'?'Bugün':'Planlı'}</b></div>
+    <div class="between" style="padding:8px 0;"><span class="muted small">Zaman</span><b class="small">${t.slot}</b></div>
+  </div>
+  <div class="disclaimer" style="border-color:rgba(63,199,166,0.4);background:rgba(63,199,166,0.08);color:var(--teal);">Talebi gönderdiğinizde bölgenizdeki uygun ustalara anında bildirim gider.</div>`;
+}
+
+/* ============ SUPPORT ============ */
+function supportHtml(){
+  return `
+  <button class="support-fab" data-action="toggle-support">${STATE.supportOpen?'✕':'💬'}</button>
+  ${STATE.supportOpen ? `
+  <div class="support-panel">
+    <div class="support-head"><span>🟢 Canlı Destek</span><button class="iconbtn" style="width:26px;height:26px;background:rgba(0,0,0,0.15);border:none;" data-action="toggle-support">✕</button></div>
+    <div class="support-msgs" id="supportMsgs">
+      ${STATE.supportMsgs.map(m=>`<div class="msg ${m.from==='me'?'me':'bot'}">${m.text}</div>`).join('')}
+    </div>
+    <div class="support-input">
+      <input id="support-in" placeholder="Mesajınızı yazın…" />
+      <button data-action="support-send">Gönder</button>
+    </div>
+  </div>` : ''}`;
+}
+
+/* ============ ROUTER / RENDER ============ */
+function render(){
+  const view = STATE.view;
+  let html = view==='home'?viewHome() : view==='harita'?viewHarita() : view==='isler'?viewIsler() : viewKayit();
+  html += `
+  <div class="bottomnav">
+    <button class="navbtn ${view==='home'?'active':''}" data-action="nav" data-view="home"><span class="ic">🏠</span>Keşfet</button>
+    <button class="navbtn ${view==='harita'?'active':''}" data-action="nav" data-view="harita"><span class="ic">🗺️</span>Harita</button>
+    <button class="fab" data-action="open-talep" data-cat="">＋</button>
+    <button class="navbtn ${view==='isler'?'active':''}" data-action="nav" data-view="isler"><span class="ic">📋</span>İşlerim</button>
+    <button class="navbtn ${view==='kayit'?'active':''}" data-action="nav" data-view="kayit"><span class="ic">📝</span>Kayıt</button>
+  </div>`;
+  html += talepFlowHtml();
+  html += addressPanelHtml();
+  html += supportHtml();
+  html += toastHtml();
+  document.getElementById('app').innerHTML = html;
+  if(view==='harita') setTimeout(initLeaflet, 30);
+  if(STATE.registerTab==='usta' && view==='kayit') wireUstaIlceMahalle();
+}
+
+function wireUstaIlceMahalle(){
+  const boxes = document.querySelectorAll('input[name="u-ilce"]');
+  boxes.forEach(b=> b.addEventListener('change', updateUstaMahalleGrid));
+}
+function updateUstaMahalleGrid(){
+  const checked = Array.from(document.querySelectorAll('input[name="u-ilce"]:checked')).map(b=>b.value);
+  const grid = document.getElementById('u-mahalle-grid');
+  if(!grid) return;
+  if(checked.length===0){ grid.innerHTML = `<div class="muted small" style="padding:8px;">İlçe seçtiğinizde mahalleler burada listelenecek.</div>`; return; }
+  let html='';
+  checked.forEach(id=>{
+    const d = distr(id);
+    d.neighborhoods.forEach(n=>{ html += `<label class="chip"><input type="checkbox" name="u-mahalle" value="${d.name} / ${n}" /> ${n}</label>`; });
+  });
+  grid.innerHTML = html;
+}
+
+/* ============ EVENT DELEGATION ============ */
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const a = el.dataset.action;
+
+  if(a==='nav'){ STATE.view = el.dataset.view; if(el.dataset.tab) STATE.registerTab = el.dataset.tab; render(); }
+  else if(a==='toggle-role'){ STATE.role = STATE.role==='musteri'?'usta':'musteri'; render(); }
+
+  else if(a==='open-talep'){ STATE.talepOpen=true; STATE.talep = {step:0, cat: el.dataset.cat||null, useLive:false, ilce:'muratpasa', mahalle:distr('muratpasa').neighborhoods[0], sokak:'', daire:'', title:'', desc:'', priority:'acil', slot:TIME_SLOTS[0], photo:false}; render(); }
+  else if(a==='talep-close'){ STATE.talepOpen=false; render(); }
+  else if(a==='talep-cat'){ STATE.talep.cat = el.dataset.cat; render(); }
+  else if(a==='talep-use-live'){ STATE.talep.useLive = true; requestLiveLocation(()=>{ render(); }); }
+  else if(a==='talep-prio'){ STATE.talep.priority = el.dataset.p; render(); }
+  else if(a==='talep-slot'){ STATE.talep.slot = el.dataset.slot; render(); }
+  else if(a==='talep-photo'){ STATE.talep.photo = true; render(); }
+  else if(a==='talep-next'){ handleTalepNext(); }
+
+  else if(a==='get-live'){ requestLiveLocation(()=>{ render(); }); }
+  else if(a==='close-address' || a==='close-address-bg'){ if(e.target===el || a==='close-address'){ STATE.addressPanelOpen=false; render(); } }
+  else if(a==='address-to-talep'){
+    const ilceVal = document.getElementById('ap-ilce').value;
+    const mahalleVal = document.getElementById('ap-mahalle').value;
+    const sokakVal = document.getElementById('ap-sokak').value;
+    const daireVal = document.getElementById('ap-daire').value;
+    STATE.addressPanelOpen = false;
+    STATE.talepOpen = true;
+    STATE.talep = {step:1, cat:null, useLive:true, ilce:'', mahalle:mahalleVal, sokak:sokakVal, daire:daireVal, title:'', desc:'', priority:'acil', slot:TIME_SLOTS[0], photo:false};
+    render();
+  }
+
+  else if(a==='accept-job'){ const id=+el.dataset.id; const j=STATE.jobs.find(j=>j.id===id); if(j){ j.status='kabul'; j.usta='Siz (Demo Usta)'; j.eta = (5+Math.floor(Math.random()*20))+' dk'; showToast('İşi kabul ettiniz: '+j.title); } render(); }
+  else if(a==='complete-job'){ const id=+el.dataset.id; const j=STATE.jobs.find(j=>j.id===id); if(j){ j.status='tamamlandi'; showToast('İş tamamlandı olarak işaretlendi.'); } render(); }
+
+  else if(a==='reg-tab'){ STATE.registerTab = el.dataset.tab; render(); }
+  else if(a==='toggle-agree'){ const btn=document.getElementById(el.dataset.target); if(btn) btn.disabled = !el.checked; }
+  else if(a==='submit-reg'){ handleSubmitReg(el.dataset.role); }
+
+  else if(a==='toggle-support'){ STATE.supportOpen = !STATE.supportOpen; render(); }
+  else if(a==='support-send'){ sendSupportMsg(); }
+});
+
+document.addEventListener('keydown', function(e){
+  if(e.key==='Enter' && e.target && e.target.id==='support-in'){ sendSupportMsg(); }
+});
+
+document.addEventListener('change', function(e){
+  if(e.target.id==='m-ilce' || e.target.id==='s-ilce'){
+    const target = e.target.dataset.target;
+    const sel = document.getElementById(target);
+    if(sel) sel.innerHTML = mahalleOptionsFor(e.target.value,'');
+  }
+  if(e.target.id==='t-ilce'){
+    const sel = document.getElementById('t-mahalle');
+    if(sel) sel.innerHTML = mahalleOptionsFor(e.target.value,'');
+    STATE.talep.ilce = e.target.value;
+  }
+});
+
+function handleTalepNext(){
+  const t = STATE.talep;
+  if(t.step===0){
+    if(!t.cat){ showToast('Lütfen bir hizmet kategorisi seçin.'); return; }
+    if(!t.useLive){
+      t.ilce = document.getElementById('t-ilce') ? document.getElementById('t-ilce').value : t.ilce;
+      t.mahalle = document.getElementById('t-mahalle') ? document.getElementById('t-mahalle').value : t.mahalle;
+      t.sokak = document.getElementById('t-sokak') ? document.getElementById('t-sokak').value : t.sokak;
+      t.daire = document.getElementById('t-daire') ? document.getElementById('t-daire').value : t.daire;
+    }
+    t.step=1; render(); return;
+  }
+  if(t.step===1){
+    t.title = document.getElementById('t-title') ? document.getElementById('t-title').value : t.title;
+    t.desc = document.getElementById('t-desc') ? document.getElementById('t-desc').value : t.desc;
+    if(!t.title || t.title.trim().length<3){ showToast('Lütfen kısa bir talep başlığı girin.'); return; }
+    t.step=2; render(); return;
+  }
+  if(t.step===2){ submitTalep(); }
+}
+
+function submitTalep(){
+  const t = STATE.talep;
+  const id = jobIdc++;
+  const d = distr(t.ilce);
+  const addr = t.useLive && STATE.liveLocation ? 'Canlı Konum (GPS ile alındı)' : `${t.mahalle||''} Mah. · ${d?d.name:''}${t.sokak?(' · '+t.sokak):''}${t.daire?(' · Daire '+t.daire):''}`;
+  STATE.jobs.unshift({id, title:t.title, cat:t.cat, ilce:d?d.name:'', mahalle:t.mahalle, addr, status:'bekliyor'});
+  // yakındaki uygun ustaları bul
+  let refLat=36.8969, refLon=30.7133;
+  if(t.useLive && STATE.liveLocation){ refLat=STATE.liveLocation.lat; refLon=STATE.liveLocation.lon; }
+  else if(d){ refLat=d.lat; refLon=d.lon; }
+  const nearby = MOCK_MASTERS.filter(m=>m.cat===t.cat || t.cat==='diger')
+    .map(m=>({...m, dist:haversine(refLat,refLon,m.lat,m.lon)}))
+    .sort((a,b)=>a.dist-b.dist).slice(0,5);
+  const count = nearby.length || Math.floor(Math.random()*4)+2;
+  STATE.talepOpen = false;
+  STATE.view = 'isler';
+  render();
+  showToast(`✅ Talebiniz alındı! Bölgenizdeki ${count} ustaya bildirim gönderildi.`);
+}
+
+function handleSubmitReg(role){
+  const map = {musteri:'m', usta:'u', site:'s', nakliye:'n'};
+  const p = map[role];
+  const ad = document.getElementById(p+'-ad');
+  if(!ad || !ad.value.trim()){ showToast('Lütfen ad/işletme adı alanını doldurun.'); return; }
+  showToast('🎉 Kaydınız alındı! ' + (role==='musteri' ? 'Hoş geldiniz.' : 'Ekibimiz sizinle iletişime geçecek.'));
+  STATE.view = 'home';
+  render();
+}
+
+function sendSupportMsg(){
+  const inp = document.getElementById('support-in');
+  if(!inp || !inp.value.trim()) return;
+  STATE.supportMsgs.push({from:'me', text:inp.value});
+  const txt = inp.value;
+  render();
+  setTimeout(()=>{
+    STATE.supportMsgs.push({from:'bot', text:'Teşekkürler! Talebinizi aldık: "'+txt+'" — bir temsilcimiz kısa süre içinde size dönüş yapacaktır.'});
+    render();
+  }, 900);
+}
+
+render();
+</script>
+</body>
+</html>

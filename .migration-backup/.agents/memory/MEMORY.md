@@ -1,0 +1,6 @@
+- [Device-ownership auth](device-ownership-auth.md) — auth-less app: x-device-id + claim codes; never expose ownership tokens in API payloads; sync both is_online stores.
+- [Supplier schema identity](supplier-schema.md) — supplier records follow text-based profiles.id while the platform remains auth-less.
+- [Primary navigation structure](navigation-structure.md) — four destinations plus a centered request action; settings and map stay secondary.
+- [Profile media visibility](profile-media-visibility.md) — provider portfolios are customer-visible; customer personal photos remain private by default.
+- [Vercel API deployment](vercel-api-deployment.md) — Vercel frontend needs a live API URL at build time; an unpublished Replit API returns “This app isn’t live yet”.
+- [Supabase URL format](supabase-url-format.md) — use the raw HTTPS project URL; Markdown-wrapped values cause browser fetch and DNS failures.

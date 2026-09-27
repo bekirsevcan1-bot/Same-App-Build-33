@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/usta-cepte-next/"
+title = "Usta Cepte Next"
+description = "Antalya'da inşaat, saha beton, şap, dekorasyon ve genel ustalık hizmetlerini hızlıca bulup talep etmeyi sağlayan sade müşteri uygulaması."
+version = "1.0.0"
+id = "artifacts/usta-cepte-next"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/usta-cepte-next/" ]
+localPort = 22650
+
+[services.development]
+run = "pnpm --filter @workspace/usta-cepte-next run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/usta-cepte-next", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/usta-cepte-next/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22650"
+BASE_PATH = "/usta-cepte-next/"

@@ -1,0 +1,1 @@
+- [Path-routed Vite artifacts](path-routed-vite-artifacts.md) — use relative entry and public asset URLs under an artifact preview prefix; injected root URLs can 404.

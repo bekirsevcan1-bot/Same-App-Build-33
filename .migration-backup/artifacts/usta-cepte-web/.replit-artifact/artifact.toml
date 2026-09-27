@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/usta-cepte-web/"
+title = "Usta Cepte Web"
+description = "Usta Cepte platformunun web arayüzü. Müşteri, usta ve yönetici kayıt formları, koyu tema, turuncu/teal aksanlar ve canlı destek butonu içerir. Tasarım referansına birebir uygun şekilde yapılmıştır."
+version = "1.0.0"
+id = "artifacts/usta-cepte-web"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/usta-cepte-web/" ]
+localPort = 22084
+
+[services.development]
+run = "pnpm --filter @workspace/usta-cepte-web run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/usta-cepte-web", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/usta-cepte-web/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22084"
+BASE_PATH = "/usta-cepte-web/"

@@ -1,0 +1,665 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Usta Cepte platform API — registration, support, ustas, requests, locations
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+  - name: registration
+  - name: support
+  - name: stats
+  - name: ustas
+  - name: requests
+  - name: locations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /register/customer:
+    post:
+      operationId: registerCustomer
+      tags: [registration]
+      summary: Register a new customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerRegistration"
+      responses:
+        "201":
+          description: Customer registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /register/craftsman:
+    post:
+      operationId: registerCraftsman
+      tags: [registration]
+      summary: Register a new craftsman (usta)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CraftsmanRegistration"
+      responses:
+        "201":
+          description: Craftsman registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /register/admin:
+    post:
+      operationId: registerAdmin
+      tags: [registration]
+      summary: Register a site admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminRegistration"
+      responses:
+        "201":
+          description: Admin registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /support/message:
+    post:
+      operationId: sendSupportMessage
+      tags: [support]
+      summary: Send a live support message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportMessageInput"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+
+  /support/messages:
+    get:
+      operationId: getSupportMessages
+      tags: [support]
+      summary: Get support messages for a session
+      parameters:
+        - name: sessionId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportMessage"
+
+  /stats:
+    get:
+      operationId: getPlatformStats
+      tags: [stats]
+      summary: Platform-wide statistics
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  /ustas:
+    get:
+      operationId: getUstas
+      tags: [ustas]
+      summary: List craftsmen
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdOptional"
+      responses:
+        "200":
+          description: List of craftsmen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Usta"
+
+  /ustas/{id}:
+    get:
+      operationId: getUstaById
+      tags: [ustas]
+      summary: Get craftsman details
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/DeviceIdOptional"
+      responses:
+        "200":
+          description: Craftsman details with server-computed capability flags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usta"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ustas/{id}/status:
+    put:
+      operationId: updateUstaStatus
+      tags: [ustas]
+      summary: Update craftsman online status (owner only; unclaimed profiles require the claim code)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/DeviceIdRequired"
+        - name: x-claim-code
+          in: header
+          required: false
+          description: Pre-authorized enrollment code, required to claim an unclaimed profile
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isOnline]
+              properties:
+                isOnline:
+                  type: boolean
+      responses:
+        "200":
+          description: Updated craftsman
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Usta"
+        "401":
+          description: Missing device id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not the owner / invalid claim code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /requests:
+    get:
+      operationId: getRequests
+      tags: [requests]
+      summary: List service requests
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdOptional"
+      responses:
+        "200":
+          description: List of requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ServiceRequest"
+    post:
+      operationId: createRequest
+      tags: [requests]
+      summary: Create a service request (bound to the creating device; initial status is server-forced)
+      parameters:
+        - $ref: "#/components/parameters/DeviceIdRequired"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceRequestInput"
+      responses:
+        "201":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+        "401":
+          description: Missing device id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /requests/{id}:
+    get:
+      operationId: getRequestById
+      tags: [requests]
+      summary: Get service request details
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/DeviceIdOptional"
+      responses:
+        "200":
+          description: Request details with server-computed capability flag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /requests/{id}/status:
+    put:
+      operationId: updateRequestStatus
+      tags: [requests]
+      summary: Update request status (owner or assigned usta's owner; lifecycle enforced)
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - $ref: "#/components/parameters/DeviceIdRequired"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: ["Beklemede", "Devam Ediyor", "Tamamlandı", "İptal"]
+      responses:
+        "200":
+          description: Updated request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceRequest"
+        "401":
+          description: Missing device id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Invalid lifecycle transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /locations:
+    get:
+      operationId: getLocations
+      tags: [locations]
+      summary: Get all online usta locations
+      responses:
+        "200":
+          description: List of usta locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UstaLocation"
+
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: number
+    DeviceIdOptional:
+      name: x-device-id
+      in: header
+      required: false
+      description: Persistent per-device identifier; used to compute capability flags
+      schema:
+        type: string
+    DeviceIdRequired:
+      name: x-device-id
+      in: header
+      required: true
+      description: Persistent per-device identifier; required for ownership-gated writes
+      schema:
+        type: string
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    CustomerRegistration:
+      type: object
+      required: [name, phone, email, password, district, kvkkConsent]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        district:
+          type: string
+        serviceAreas:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        address:
+          type: ["string", "null"]
+        kvkkConsent:
+          type: boolean
+
+    CraftsmanRegistration:
+      type: object
+      required: [name, phone, email, password, specialty, district, experience, kvkkConsent]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        specialty:
+          type: string
+        specialties:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        categoryId:
+          type: ["string", "null"]
+        district:
+          type: string
+        experience:
+          type: number
+        about:
+          type: ["string", "null"]
+        idNumber:
+          type: ["string", "null"]
+        kvkkConsent:
+          type: boolean
+
+    AdminRegistration:
+      type: object
+      required: [name, email, password, adminCode, kvkkConsent]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        adminCode:
+          type: string
+        department:
+          type: ["string", "null"]
+        kvkkConsent:
+          type: boolean
+
+    RegistrationResult:
+      type: object
+      required: [id, role, email, message]
+      properties:
+        id:
+          type: number
+        role:
+          type: string
+        email:
+          type: string
+        message:
+          type: string
+
+    SupportMessageInput:
+      type: object
+      required: [senderName, message]
+      properties:
+        sessionId:
+          type: ["string", "null"]
+        senderName:
+          type: string
+        email:
+          type: ["string", "null"]
+        message:
+          type: string
+
+    SupportMessage:
+      type: object
+      required: [id, sessionId, senderName, message, isAgent, createdAt]
+      properties:
+        id:
+          type: number
+        sessionId:
+          type: string
+        senderName:
+          type: string
+        email:
+          type: ["string", "null"]
+        message:
+          type: string
+        isAgent:
+          type: boolean
+        createdAt:
+          type: string
+
+    PlatformStats:
+      type: object
+      required: [totalUstas, totalCustomers, totalRequests, completedRequests, activeUstas]
+      properties:
+        totalUstas:
+          type: number
+        totalCustomers:
+          type: number
+        totalRequests:
+          type: number
+        completedRequests:
+          type: number
+        activeUstas:
+          type: number
+        avgRating:
+          type: number
+
+    Usta:
+      type: object
+      required: [id, name, specialty, rating, priceMin, priceMax, isOnline, verified]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        specialty:
+          type: string
+        categoryId:
+          type: ["string", "null"]
+        rating:
+          type: number
+        priceMin:
+          type: number
+        priceMax:
+          type: number
+        isOnline:
+          type: boolean
+        verified:
+          type: boolean
+        district:
+          type: ["string", "null"]
+        reviewCount:
+          type: number
+        bio:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        claimed:
+          type: boolean
+        canManage:
+          type: boolean
+        claimable:
+          type: boolean
+
+    ServiceRequest:
+      type: object
+      required: [id, categoryId, categoryName, semt, mahalle, status, priority, createdAt]
+      properties:
+        id:
+          type: number
+        categoryId:
+          type: string
+        categoryName:
+          type: string
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        semt:
+          type: string
+        mahalle:
+          type: string
+        sokak:
+          type: ["string", "null"]
+        priority:
+          type: string
+        timeRange:
+          type: ["string", "null"]
+        status:
+          type: string
+        createdAt:
+          type: string
+        userName:
+          type: ["string", "null"]
+        assignedUstaId:
+          type: ["string", "null"]
+        canManage:
+          type: boolean
+
+    ServiceRequestInput:
+      type: object
+      required: [categoryId, categoryName, semt, mahalle, priority]
+      properties:
+        categoryId:
+          type: string
+        categoryName:
+          type: string
+        title:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        semt:
+          type: string
+        mahalle:
+          type: string
+        sokak:
+          type: ["string", "null"]
+        priority:
+          type: string
+        timeRange:
+          type: ["string", "null"]
+
+    UstaLocation:
+      type: object
+      required: [ustaId, ustaName, specialty, lat, lng, isOnline]
+      properties:
+        ustaId:
+          type: number
+        ustaName:
+          type: string
+        specialty:
+          type: string
+        categoryId:
+          type: ["string", "null"]
+        lat:
+          type: number
+        lng:
+          type: number
+        heading:
+          type: ["number", "null"]
+        isOnline:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string

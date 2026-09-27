@@ -1,0 +1,30 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "9Xiy2EfOqXvuztrQ9uc5q"
+uri = "file://screenshots/usta-cepte-dark-theme-trial.jpg"
+type = "image"
+title = "Usta Cepte — Koyu Tema Denemesi"
+description = "Referans görseldeki koyu tema ve talep oluşturma akışının mobil önizlemesi."
+logical_id = "91d807dc-d6a2-4a50-bd9f-ac548b9de8e0"
+content_hash = "sha256:9944db2f755f153e68ffd9e8e37639f1155668606e6ce1657eded96b66e17cbb"
+size = 39771
+mtime_ms = 1787175228279
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:2571ae97-22a0-42e2-8c66-9590c10f054a/91d807dc-d6a2-4a50-bd9f-ac548b9de8e0/5353648b-2cb9-4b4d-aac4-95331d4e9422"
+storage_version_token = "1787175230416646"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "9XdsART5QkuFPikbrc2nf"
+uri = "file://artifacts/usta-cepte-web/downloads/usta-cepte-web-build.zip"
+type = "unspecified"
+title = "Usta Cepte güncel web uygulaması"
+description = "Güncel üretim build'i ve kurulabilir PWA dosyalarını içeren ZIP paketi."
+logical_id = "650cc15b-bc70-460c-86d1-c54b4f01b019"
+content_hash = "sha256:a8918026032634b17e9e123c825e00bc9efbfe99818852083515cc0960dcb0da"
+size = 433513
+mtime_ms = 1787482074672
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:2571ae97-22a0-42e2-8c66-9590c10f054a/650cc15b-bc70-460c-86d1-c54b4f01b019/e8b03f32-9a5c-4126-bd74-706d85a4eabd"
+storage_version_token = "1787482085998483"
+content_type = "application/octet-stream"

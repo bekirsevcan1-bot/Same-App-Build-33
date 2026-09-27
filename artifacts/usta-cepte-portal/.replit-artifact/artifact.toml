@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/usta-cepte/"
+title = "Usta Cepte"
+description = "Antalya'da güvenilir ustaları bulmayı, hizmet talebi oluşturmayı ve destek almayı sağlayan Usta Cepte web uygulaması. Müşteri, usta ve yönetici akışlarını koyu temalı modern bir arayüzde sunar."
+version = "1.0.0"
+id = "artifacts/usta-cepte-portal"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/usta-cepte/" ]
+localPort = 22395
+
+[services.development]
+run = "pnpm --filter @workspace/usta-cepte-portal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/usta-cepte-portal", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/usta-cepte-portal/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22395"
+BASE_PATH = "/usta-cepte/"

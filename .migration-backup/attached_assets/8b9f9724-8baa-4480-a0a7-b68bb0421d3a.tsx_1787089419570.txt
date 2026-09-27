@@ -1,0 +1,632 @@
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Zap, Droplet, Wind, Building2, Paintbrush, LayoutGrid, KeyRound,
+  MoreHorizontal, MapPin, Bell, ArrowLeft, Check, Clock, Camera,
+  ChevronRight, Home as HomeIcon, Briefcase, Map as MapIcon, Plus, X,
+  Star, ShieldCheck, Navigation, Radio
+} from "lucide-react";
+
+const FONTS = `
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+`;
+
+const CATEGORIES = [
+  { key: "elektrik", label: "Elektrik", icon: Zap },
+  { key: "su", label: "Su Tesisatı", icon: Droplet },
+  { key: "klima", label: "Klima", icon: Wind },
+  { key: "asansor", label: "Asansör", icon: Building2 },
+  { key: "boya", label: "Boya", icon: Paintbrush },
+  { key: "seramik", label: "Seramik", icon: LayoutGrid },
+  { key: "cilingir", label: "Çilingir", icon: KeyRound },
+  { key: "diger", label: "Diğer", icon: MoreHorizontal },
+];
+
+const PRIORITIES = [
+  { key: "acil", label: "Acil", sub: "30 dk içinde" },
+  { key: "bugun", label: "Bugün", sub: "Gün içinde" },
+  { key: "planli", label: "Planlı", sub: "Tarih seçin" },
+];
+
+const TIME_SLOTS = [
+  "Bugün · 10:00 – 13:00",
+  "Bugün · 13:00 – 16:00",
+  "Bugün · 16:00 – 19:00",
+  "Yarın · 09:00 – 12:00",
+];
+
+const MASTERS = [
+  { name: "Mehmet Yılmaz", service: "Elektrik", rating: 4.9, jobs: 86, distance: "1.8 km", status: "Müsait", top: "28%", left: "62%" },
+  { name: "Ahmet Demir", service: "Su Tesisatı", rating: 4.8, jobs: 124, distance: "2.4 km", status: "Müsait", top: "54%", left: "30%" },
+  { name: "Hakan Şahin", service: "Klima", rating: 4.7, jobs: 53, distance: "3.1 km", status: "Meşgul", top: "70%", left: "72%" },
+  { name: "Serkan Kaya", service: "Boya", rating: 4.9, jobs: 41, distance: "3.6 km", status: "Müsait", top: "20%", left: "22%" },
+];
+
+const seedJobs = [
+  { id: 1, title: "Elektrik Arızası", loc: "Fener Mahallesi · Muratpaşa", status: "active", master: "Mehmet Yılmaz", eta: "12 dk" },
+  { id: 2, title: "Banyo Seramik Tamiratı", loc: "Çağlayan Mahallesi · Kepez", status: "searching" },
+];
+
+function useFonts() {
+  useEffect(() => {
+    const tag = document.createElement("style");
+    tag.innerHTML = FONTS;
+    document.head.appendChild(tag);
+    return () => document.head.removeChild(tag);
+  }, []);
+}
+
+function TopBar({ title, onBack }) {
+  return (
+    <div style={s.topbar}>
+      {onBack ? (
+        <button onClick={onBack} style={s.iconBtn} aria-label="Geri">
+          <ArrowLeft size={19} color="var(--text)" />
+        </button>
+      ) : (
+        <div style={s.locWrap}>
+          <MapPin size={14} color="var(--copper)" />
+          <div>
+            <div style={s.locLabel}>Muratpaşa, Fener Mah.</div>
+          </div>
+        </div>
+      )}
+      <div style={s.topTitle}>{title}</div>
+      {!onBack ? (
+        <button style={s.iconBtn} aria-label="Bildirimler">
+          <Bell size={18} color="var(--text)" />
+          <span style={s.dot} />
+        </button>
+      ) : <div style={{ width: 34 }} />}
+    </div>
+  );
+}
+
+function CategoryTile({ cat, selected, onClick }) {
+  const Icon = cat.icon;
+  return (
+    <button onClick={onClick} style={{ ...s.catTile, ...(selected ? s.catTileActive : {}) }}>
+      <Icon size={20} color={selected ? "#10161A" : "var(--teal)"} strokeWidth={2} />
+      <span style={{ ...s.catLabel, color: selected ? "#10161A" : "var(--text)" }}>{cat.label}</span>
+    </button>
+  );
+}
+
+function Home({ onStart, jobs, onOpenJob }) {
+  const active = jobs.find((j) => j.status === "active" || j.status === "searching");
+  return (
+    <div style={s.screen}>
+      <TopBar />
+      <div style={s.hero}>
+        <div style={s.heroEyebrow}>ANTALYA · DOĞRULANMIŞ USTALAR</div>
+        <h1 style={s.heroTitle}>Ustan bir talep<br />uzağında.</h1>
+        <p style={s.heroSub}>Bölgene en yakın, puanı yüksek ustayı bul; işini canlı takip et.</p>
+        <button style={s.heroCta} onClick={() => onStart(null)}>
+          <Plus size={17} strokeWidth={2.5} />
+          Talep Oluştur
+        </button>
+      </div>
+
+      {active && (
+        <div style={s.sectionPad}>
+          <div style={s.sectionLabel}>Devam eden</div>
+          <button style={s.activeCard} onClick={() => onOpenJob(active)}>
+            <div style={s.pulseWrap}>
+              <span style={s.pulseRing} />
+              <span style={s.pulseCore} />
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={s.activeTitle}>{active.title}</div>
+              <div style={s.activeSub}>
+                {active.status === "active" ? `${active.master} yola çıktı · ${active.eta}` : "Size en uygun usta aranıyor…"}
+              </div>
+            </div>
+            <ChevronRight size={18} color="var(--muted)" />
+          </button>
+        </div>
+      )}
+
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Hangi konuda destek lazım?</div>
+        <div style={s.catGrid}>
+          {CATEGORIES.map((c) => (
+            <CategoryTile key={c.key} cat={c} selected={false} onClick={() => onStart(c.key)} />
+          ))}
+        </div>
+      </div>
+
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Nasıl çalışır</div>
+        <div style={s.stepsCol}>
+          {[
+            ["01", "Sorunu anlat", "Kategori seç, konum ve fotoğraf ekle."],
+            ["02", "Usta eşleşsin", "En yakın uygun usta talebini görür."],
+            ["03", "Canlı takip et", "Ustanın konumunu ve varış süresini izle."],
+          ].map(([n, t, d]) => (
+            <div key={n} style={s.stepRow}>
+              <span style={s.stepNum}>{n}</span>
+              <div>
+                <div style={s.stepTitle}>{t}</div>
+                <div style={s.stepDesc}>{d}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ height: 90 }} />
+    </div>
+  );
+}
+
+function RequestFlow({ initialCat, onClose, onSubmit }) {
+  const [step, setStep] = useState(0);
+  const [cat, setCat] = useState(initialCat);
+  const [site, setSite] = useState("Lara Konakları");
+  const [blok, setBlok] = useState("B Blok");
+  const [daire, setDaire] = useState("18");
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState("");
+  const [priority, setPriority] = useState("acil");
+  const [slot, setSlot] = useState(TIME_SLOTS[2]);
+  const [photoAdded, setPhotoAdded] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const catObj = CATEGORIES.find((c) => c.key === cat);
+  const canStep1 = !!cat;
+  const canStep2 = title.trim().length > 2;
+
+  const steps = ["Hizmet", "Detaylar", "Onay"];
+
+  if (sent) {
+    return <SearchingScreen catLabel={catObj?.label} onClose={onClose} onDone={() => onSubmit({ title, cat, catObj, priority, slot, site, blok, daire })} />;
+  }
+
+  return (
+    <div style={s.screen}>
+      <TopBar title="Talep Oluştur" onBack={onClose} />
+      <div style={s.progressWrap}>
+        {steps.map((label, i) => (
+          <div key={label} style={{ flex: 1 }}>
+            <div style={{ ...s.progressBar, background: i <= step ? "var(--teal)" : "rgba(255,255,255,0.09)" }} />
+            <div style={{ ...s.progressLabel, color: i === step ? "var(--teal)" : "var(--muted)" }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={s.flowBody}>
+        {step === 0 && (
+          <>
+            <div style={s.qTitle}>Hangi konuda destek lazım?</div>
+            <div style={s.catGrid}>
+              {CATEGORIES.map((c) => (
+                <CategoryTile key={c.key} cat={c} selected={cat === c.key} onClick={() => setCat(c.key)} />
+              ))}
+            </div>
+            <div style={s.fieldLabel}>KONUM</div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Site</label>
+              <input style={s.input} value={site} onChange={(e) => setSite(e.target.value)} />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ ...s.field, flex: 1 }}>
+                <label style={s.fieldSub}>Blok</label>
+                <input style={s.input} value={blok} onChange={(e) => setBlok(e.target.value)} />
+              </div>
+              <div style={{ ...s.field, flex: 1 }}>
+                <label style={s.fieldSub}>Daire</label>
+                <input style={s.input} value={daire} onChange={(e) => setDaire(e.target.value)} />
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 1 && (
+          <>
+            <div style={s.qTitle}>Ustanın hazırlıklı gelmesini sağlayın</div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Talep başlığı</label>
+              <input style={s.input} placeholder="Örn. Salon prizlerinde elektrik yok" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div style={s.field}>
+              <label style={s.fieldSub}>Açıklama</label>
+              <textarea style={s.textarea} rows={4} placeholder="Sorunu kısaca anlatın…" value={desc} onChange={(e) => setDesc(e.target.value)} />
+            </div>
+            <div style={s.fieldLabel}>ÖNCELİK</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+              {PRIORITIES.map((p) => (
+                <button key={p.key} onClick={() => setPriority(p.key)} style={{ ...s.priorityBtn, ...(priority === p.key ? s.priorityBtnActive(p.key) : {}) }}>
+                  <div style={{ fontWeight: 600 }}>{p.label}</div>
+                  <div style={{ fontSize: 11, opacity: 0.8 }}>{p.sub}</div>
+                </button>
+              ))}
+            </div>
+            <div style={s.fieldLabel}>TERCİH EDİLEN ZİYARET ZAMANI</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
+              {TIME_SLOTS.map((t) => (
+                <button key={t} onClick={() => setSlot(t)} style={{ ...s.slotBtn, ...(slot === t ? s.slotBtnActive : {}) }}>
+                  <Clock size={15} color={slot === t ? "var(--teal)" : "var(--muted)"} />
+                  {t}
+                </button>
+              ))}
+            </div>
+            <div style={s.fieldLabel}>SORUNU GÖSTERİN <span style={{ color: "var(--muted)", fontWeight: 400 }}>(isteğe bağlı)</span></div>
+            <button style={s.photoBtn} onClick={() => setPhotoAdded(true)}>
+              <Camera size={17} color="var(--muted)" />
+              {photoAdded ? "1 fotoğraf eklendi" : "Fotoğraf / video ekle"}
+            </button>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div style={s.qTitle}>Talebini gözden geçir</div>
+            <div style={s.reviewCard}>
+              <ReviewRow label="Hizmet" value={catObj?.label || "—"} />
+              <ReviewRow label="Konum" value={`${site}, ${blok} · Daire ${daire}`} />
+              <ReviewRow label="Başlık" value={title || "—"} />
+              <ReviewRow label="Öncelik" value={PRIORITIES.find((p) => p.key === priority)?.label} />
+              <ReviewRow label="Zaman" value={slot} last />
+            </div>
+            <div style={s.trustRow}>
+              <ShieldCheck size={15} color="var(--teal)" />
+              Kimliği doğrulanmış ustalar arasından eşleştirme yapılır.
+            </div>
+          </>
+        )}
+      </div>
+
+      <div style={s.flowFooter}>
+        <button
+          style={{ ...s.submitBtn, opacity: (step === 0 && !canStep1) || (step === 1 && !canStep2) ? 0.45 : 1 }}
+          disabled={(step === 0 && !canStep1) || (step === 1 && !canStep2)}
+          onClick={() => (step < 2 ? setStep(step + 1) : setSent(true))}
+        >
+          {step < 2 ? "Devam et" : "Talebi Gönder"}
+          <ChevronRight size={17} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReviewRow({ label, value, last }) {
+  return (
+    <div style={{ ...s.reviewRow, borderBottom: last ? "none" : "1px solid rgba(255,255,255,0.07)" }}>
+      <span style={s.reviewLabel}>{label}</span>
+      <span style={s.reviewValue}>{value}</span>
+    </div>
+  );
+}
+
+function SearchingScreen({ catLabel, onClose, onDone }) {
+  const [phase, setPhase] = useState("searching");
+  useEffect(() => {
+    const t = setTimeout(() => setPhase("matched"), 2600);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div style={{ ...s.screen, display: "flex", flexDirection: "column" }}>
+      <TopBar title="" onBack={onClose} />
+      <div style={s.searchWrap}>
+        {phase === "searching" ? (
+          <>
+            <div style={s.radarWrap}>
+              <span style={s.radarRing1} />
+              <span style={s.radarRing2} />
+              <div style={s.radarCore}>
+                <Navigation size={22} color="#10161A" />
+              </div>
+            </div>
+            <div style={s.searchTitle}>Size en yakın {catLabel?.toLowerCase()} ustası aranıyor…</div>
+            <div style={s.searchSub}>Ortalama eşleşme süresi 40 saniye</div>
+          </>
+        ) : (
+          <>
+            <div style={s.matchBadge}>
+              <Check size={26} color="#10161A" strokeWidth={3} />
+            </div>
+            <div style={s.searchTitle}>Usta bulundu!</div>
+            <div style={s.matchCard}>
+              <div style={s.matchAvatar}>MY</div>
+              <div style={{ flex: 1, textAlign: "left" }}>
+                <div style={{ fontWeight: 600 }}>Mehmet Yılmaz</div>
+                <div style={s.matchMeta}>
+                  <Star size={12} color="var(--copper)" fill="var(--copper)" /> 4.9 · 86 iş · 1.8 km
+                </div>
+              </div>
+            </div>
+            <button style={s.submitBtn} onClick={onDone}>
+              İşi Takip Et
+              <ChevronRight size={17} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function statusMeta(status) {
+  if (status === "active") return { label: "Yolda", color: "var(--teal)" };
+  if (status === "searching") return { label: "Usta aranıyor", color: "var(--copper)" };
+  return { label: "Tamamlandı", color: "var(--muted)" };
+}
+
+function Jobs({ jobs }) {
+  const activeJobs = jobs.filter((j) => j.status !== "done");
+  const doneJobs = jobs.filter((j) => j.status === "done");
+  return (
+    <div style={s.screen}>
+      <TopBar title="İşlerim" />
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Aktif talepler · {activeJobs.length}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {activeJobs.map((j) => {
+            const meta = statusMeta(j.status);
+            return (
+              <div key={j.id} style={s.jobCard}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                  <div style={{ fontWeight: 600 }}>{j.title}</div>
+                  <span style={{ ...s.badge, color: meta.color, borderColor: meta.color }}>{meta.label}</span>
+                </div>
+                <div style={s.jobLoc}>{j.loc}</div>
+                {j.status === "active" && (
+                  <div style={s.jobFooter}>
+                    <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{j.master} · tahmini {j.eta}</span>
+                    <button style={s.trackBtn}>Canlı Takip</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {activeJobs.length === 0 && <div style={s.emptyNote}>Aktif talebiniz yok.</div>}
+        </div>
+      </div>
+      {doneJobs.length > 0 && (
+        <div style={s.sectionPad}>
+          <div style={s.sectionLabel}>Arşiv</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {doneJobs.map((j) => (
+              <div key={j.id} style={{ ...s.jobCard, opacity: 0.6 }}>
+                <div style={{ fontWeight: 600 }}>{j.title}</div>
+                <div style={s.jobLoc}>{j.loc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div style={{ height: 90 }} />
+    </div>
+  );
+}
+
+function MapTab() {
+  const [sel, setSel] = useState(0);
+  return (
+    <div style={s.screen}>
+      <TopBar title="Harita" />
+      <div style={s.mapArea}>
+        <div style={s.mapGrid} />
+        {MASTERS.map((m, i) => (
+          <button
+            key={m.name}
+            onClick={() => setSel(i)}
+            style={{ ...s.pin, top: m.top, left: m.left, background: m.status === "Müsait" ? "var(--teal)" : "var(--muted)", transform: `translate(-50%,-50%) scale(${sel === i ? 1.25 : 1})`, zIndex: sel === i ? 3 : 1 }}
+          >
+            <MapPin size={16} color="#10161A" fill={sel === i ? "#10161A" : "none"} />
+          </button>
+        ))}
+        <div style={s.mapBadge}>
+          <Radio size={13} color="var(--teal)" /> {MASTERS.filter((m) => m.status === "Müsait").length} usta müsait
+        </div>
+      </div>
+      <div style={s.sectionPad}>
+        <div style={s.sectionLabel}>Yakındaki ustalar</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {MASTERS.map((m, i) => (
+            <button key={m.name} onClick={() => setSel(i)} style={{ ...s.masterCard, ...(sel === i ? s.masterCardActive : {}) }}>
+              <div style={s.matchAvatar}>{m.name.split(" ").map((n) => n[0]).join("")}</div>
+              <div style={{ flex: 1, textAlign: "left" }}>
+                <div style={{ fontWeight: 600, fontSize: 14.5 }}>{m.name}</div>
+                <div style={s.matchMeta}>
+                  {m.service} · <Star size={11} color="var(--copper)" fill="var(--copper)" /> {m.rating} · {m.jobs} iş
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>{m.distance}</div>
+                <div style={{ fontSize: 11, color: m.status === "Müsait" ? "var(--teal)" : "var(--muted)", fontWeight: 600 }}>{m.status}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ height: 90 }} />
+    </div>
+  );
+}
+
+export default function UstaCepteApp() {
+  useFonts();
+  const [tab, setTab] = useState("home");
+  const [flowOpen, setFlowOpen] = useState(false);
+  const [flowCat, setFlowCat] = useState(null);
+  const [jobs, setJobs] = useState(seedJobs);
+  const nextId = useRef(3);
+
+  const startFlow = (cat) => {
+    setFlowCat(cat);
+    setFlowOpen(true);
+  };
+
+  const handleSubmit = (data) => {
+    const id = nextId.current++;
+    setJobs((prev) => [
+      { id, title: data.title || data.catObj?.label || "Yeni Talep", loc: `${data.site}, ${data.blok} · Daire ${data.daire}`, status: "searching" },
+      ...prev,
+    ]);
+    setFlowOpen(false);
+    setTab("jobs");
+    setTimeout(() => {
+      setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, status: "active", master: "Mehmet Yılmaz", eta: "12 dk" } : j)));
+    }, 3200);
+  };
+
+  return (
+    <div style={s.page}>
+      <div style={s.phone}>
+        {flowOpen ? (
+          <RequestFlow initialCat={flowCat} onClose={() => setFlowOpen(false)} onSubmit={handleSubmit} />
+        ) : (
+          <>
+            {tab === "home" && <Home onStart={startFlow} jobs={jobs} onOpenJob={() => setTab("jobs")} />}
+            {tab === "jobs" && <Jobs jobs={jobs} />}
+            {tab === "map" && <MapTab />}
+            <div style={s.bottomNav}>
+              <NavBtn icon={HomeIcon} label="Keşfet" active={tab === "home"} onClick={() => setTab("home")} />
+              <NavBtn icon={MapIcon} label="Harita" active={tab === "map"} onClick={() => setTab("map")} />
+              <button style={s.fab} onClick={() => startFlow(null)} aria-label="Talep Oluştur">
+                <Plus size={22} color="#10161A" strokeWidth={2.5} />
+              </button>
+              <NavBtn icon={Briefcase} label="İşlerim" active={tab === "jobs"} onClick={() => setTab("jobs")} />
+              <div style={{ width: 40 }} />
+            </div>
+          </>
+        )}
+      </div>
+      <style>{`
+        * { box-sizing: border-box; }
+        button { font-family: inherit; cursor: pointer; }
+        input, textarea { font-family: inherit; }
+        ::placeholder { color: var(--muted); }
+        input:focus, textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+        button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+        @keyframes pulseRing { 0% { transform: scale(0.7); opacity: 0.7; } 100% { transform: scale(2.1); opacity: 0; } }
+        @keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
+}
+
+function NavBtn({ icon: Icon, label, active, onClick }) {
+  return (
+    <button onClick={onClick} style={s.navBtn}>
+      <Icon size={19} color={active ? "var(--teal)" : "var(--muted)"} strokeWidth={active ? 2.4 : 2} />
+      <span style={{ fontSize: 10.5, color: active ? "var(--teal)" : "var(--muted)", fontWeight: active ? 600 : 500 }}>{label}</span>
+    </button>
+  );
+}
+
+const vars = {
+  "--bg": "#0E1417",
+  "--surface": "#171F23",
+  "--surface2": "#1E282D",
+  "--copper": "#E3A344",
+  "--teal": "#3FC7A6",
+  "--text": "#F3EFE6",
+  "--muted": "#84959B",
+  "--border": "rgba(255,255,255,0.08)",
+};
+
+const s = {
+  page: {
+    minHeight: "100vh",
+    background: "radial-gradient(circle at 30% 0%, #17232A 0%, #0B0F11 60%)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    padding: "0",
+    fontFamily: "'Inter', sans-serif",
+    ...vars,
+  },
+  phone: {
+    width: "100%",
+    maxWidth: 430,
+    minHeight: "100vh",
+    background: "var(--bg)",
+    color: "var(--text)",
+    position: "relative",
+    overflow: "hidden",
+    borderLeft: "1px solid var(--border)",
+    borderRight: "1px solid var(--border)",
+  },
+  screen: { minHeight: "100vh", paddingBottom: 10 },
+  topbar: {
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    padding: "18px 18px 10px",
+  },
+  locWrap: { display: "flex", alignItems: "center", gap: 6 },
+  locLabel: { fontSize: 12.5, color: "var(--text)", fontWeight: 500 },
+  topTitle: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16 },
+  iconBtn: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" },
+  dot: { position: "absolute", top: 8, right: 8, width: 6, height: 6, borderRadius: 99, background: "var(--copper)" },
+  hero: { padding: "6px 20px 20px" },
+  heroEyebrow: { fontSize: 11, letterSpacing: 1.2, color: "var(--copper)", fontWeight: 600, marginBottom: 10 },
+  heroTitle: { fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, lineHeight: 1.12, fontWeight: 700, margin: "0 0 10px" },
+  heroSub: { fontSize: 13.5, color: "var(--muted)", lineHeight: 1.5, margin: "0 0 18px", maxWidth: 320 },
+  heroCta: { display: "flex", alignItems: "center", gap: 8, background: "var(--copper)", color: "#10161A", border: "none", padding: "13px 20px", borderRadius: 14, fontWeight: 700, fontSize: 14.5 },
+  sectionPad: { padding: "14px 20px" },
+  sectionLabel: { fontSize: 12.5, color: "var(--muted)", fontWeight: 600, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 },
+  catGrid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 9, marginBottom: 20 },
+  catTile: { display: "flex", flexDirection: "column", alignItems: "center", gap: 7, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "13px 4px" },
+  catTileActive: { background: "var(--teal)", borderColor: "var(--teal)" },
+  catLabel: { fontSize: 11, fontWeight: 500, textAlign: "center" },
+  activeCard: { width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: 14, textAlign: "left" },
+  pulseWrap: { position: "relative", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  pulseRing: { position: "absolute", width: 34, height: 34, borderRadius: 99, border: "2px solid var(--teal)", animation: "pulseRing 1.8s ease-out infinite" },
+  pulseCore: { width: 12, height: 12, borderRadius: 99, background: "var(--teal)" },
+  activeTitle: { fontWeight: 600, fontSize: 14 },
+  activeSub: { fontSize: 12, color: "var(--muted)", marginTop: 2 },
+  stepsCol: { display: "flex", flexDirection: "column", gap: 16 },
+  stepRow: { display: "flex", gap: 14, alignItems: "flex-start" },
+  stepNum: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: "var(--copper)", fontSize: 13, border: "1px solid var(--border)", borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  stepTitle: { fontWeight: 600, fontSize: 13.5 },
+  stepDesc: { fontSize: 12, color: "var(--muted)", marginTop: 2 },
+  progressWrap: { display: "flex", gap: 8, padding: "0 20px 16px" },
+  progressBar: { height: 4, borderRadius: 99, marginBottom: 6 },
+  progressLabel: { fontSize: 11, fontWeight: 600 },
+  flowBody: { padding: "4px 20px 100px" },
+  qTitle: { fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 19, margin: "4px 0 16px" },
+  fieldLabel: { fontSize: 11, letterSpacing: 0.6, color: "var(--muted)", fontWeight: 600, margin: "4px 0 8px" },
+  field: { marginBottom: 12 },
+  fieldSub: { fontSize: 11.5, color: "var(--muted)", display: "block", marginBottom: 5 },
+  input: { width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "11px 13px", color: "var(--text)", fontSize: 14 },
+  textarea: { width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "11px 13px", color: "var(--text)", fontSize: 14, resize: "none" },
+  priorityBtn: { flex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 6px", color: "var(--text)", textAlign: "center" },
+  priorityBtnActive: (key) => ({ background: key === "acil" ? "#4A2A1B" : "var(--surface2)", borderColor: "var(--copper)", color: "var(--copper)" }),
+  slotBtn: { display: "flex", alignItems: "center", gap: 9, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "11px 13px", color: "var(--text)", fontSize: 13.5, textAlign: "left" },
+  slotBtnActive: { borderColor: "var(--teal)", background: "var(--surface2)", color: "var(--teal)", fontWeight: 600 },
+  photoBtn: { display: "flex", alignItems: "center", gap: 9, background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 12, padding: "13px", color: "var(--muted)", fontSize: 13, width: "100%" },
+  reviewCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "4px 14px", marginBottom: 14 },
+  reviewRow: { display: "flex", justifyContent: "space-between", padding: "11px 0", gap: 10 },
+  reviewLabel: { fontSize: 12.5, color: "var(--muted)" },
+  reviewValue: { fontSize: 12.5, fontWeight: 600, textAlign: "right" },
+  trustRow: { display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)" },
+  flowFooter: { position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 430, margin: "0 auto", padding: 16, background: "linear-gradient(to top, var(--bg) 60%, transparent)" },
+  submitBtn: { width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--copper)", color: "#10161A", border: "none", padding: "14px", borderRadius: 14, fontWeight: 700, fontSize: 14.5 },
+  searchWrap: { display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "60px 30px", gap: 6 },
+  radarWrap: { position: "relative", width: 100, height: 100, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 26 },
+  radarRing1: { position: "absolute", inset: 0, border: "2px solid var(--teal)", borderRadius: 99, animation: "pulseRing 2s ease-out infinite" },
+  radarRing2: { position: "absolute", inset: 0, border: "2px solid var(--teal)", borderRadius: 99, animation: "pulseRing 2s ease-out infinite 1s" },
+  radarCore: { width: 52, height: 52, borderRadius: 99, background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center" },
+  searchTitle: { fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, maxWidth: 280 },
+  searchSub: { fontSize: 12.5, color: "var(--muted)", marginTop: 6 },
+  matchBadge: { width: 56, height: 56, borderRadius: 99, background: "var(--teal)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 18 },
+  matchCard: { display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14, width: "100%", margin: "20px 0 24px" },
+  matchAvatar: { width: 40, height: 40, borderRadius: 99, background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12.5, color: "var(--teal)", flexShrink: 0 },
+  matchMeta: { fontSize: 11.5, color: "var(--muted)", display: "flex", alignItems: "center", gap: 3, marginTop: 3 },
+  jobCard: { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 14 },
+  jobLoc: { fontSize: 12, color: "var(--muted)", marginTop: 4 },
+  jobFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)" },
+  trackBtn: { background: "var(--teal)", color: "#10161A", border: "none", borderRadius: 10, padding: "7px 12px", fontWeight: 700, fontSize: 11.5 },
+  badge: { fontSize: 10.5, fontWeight: 700, padding: "4px 9px", borderRadius: 99, border: "1px solid", flexShrink: 0 },
+  emptyNote: { fontSize: 13, color: "var(--muted)", padding: "20px 0", textAlign: "center" },
+  mapArea: { position: "relative", margin: "0 20px 6px", height: 260, borderRadius: 18, overflow: "hidden", background: "var(--surface)", border: "1px solid var(--border)" },
+  mapGrid: { position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(255,255,255,0.09) 1px, transparent 1px)", backgroundSize: "16px 16px" },
+  pin: { position: "absolute", width: 30, height: 30, borderRadius: "50% 50% 50% 0", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #10161A", transition: "transform 0.15s" },
+  mapBadge: { position: "absolute", top: 12, left: 12, display: "flex", alignItems: "center", gap: 6, background: "rgba(14,20,23,0.85)", border: "1px solid var(--border)", borderRadius: 99, padding: "6px 11px", fontSize: 11.5, fontWeight: 600 },
+  masterCard: { width: "100%", display: "flex", alignItems: "center", gap: 12, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 12, textAlign: "left" },
+  masterCardActive: { borderColor: "var(--teal)", background: "var(--surface2)" },
+  bottomNav: { position: "fixed", bottom: 0, left: 0, right: 0, maxWidth: 430, margin: "0 auto", height: 74, background: "rgba(20,27,31,0.92)", backdropFilter: "blur(10px)", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 10px" },
+  navBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 3, background: "none", border: "none", width: 56, padding: "6px 0" },
+  fab: { width: 52, height: 52, borderRadius: 16, background: "var(--copper)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", marginTop: -22, boxShadow: "0 8px 20px rgba(227,163,68,0.35)" },
+};
